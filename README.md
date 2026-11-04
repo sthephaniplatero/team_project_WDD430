@@ -10,6 +10,7 @@
 
 ## 📋 Project Documentation
 - **[Project Specification Document](./SPECIFICATION.md)**: Full project specification covering user stories, acceptance criteria, technical requirements, core API endpoints, and implementation priorities.
+- **[Project Issues & Tasks](./ISSUES.md)**: Breakdown of user stories into actionable implementation tasks across Database, Backend, and Frontend.
 - **[Team Constitution](./.specify/memory/constitution.md)**: Development guidelines, TypeScript standards, Next.js architecture, and collaboration principles.
 
 ## 🛠️ Tech Stack
