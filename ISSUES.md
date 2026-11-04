@@ -8,7 +8,7 @@ This document translates the **Spec-Kit Project Specification** ([SPECIFICATION.
 
 | Issue # | Title | User Story | Priority | Primary Area |
 | :--- | :--- | :--- | :--- | :--- |
-| **#1** | [Foundational] Project Setup, Design System & Prisma Schema | Infra | **P0** | Fullstack / DB |
+| **#1** | [Foundational] Project Setup, Design System & Supabase Database Setup | Infra | **P0** | Fullstack / DB |
 | **#2** | [Auth & Users] User Registration, Authentication & Role Management | US1 | **P0** | Fullstack |
 | **#3** | [Services] Services CRUD Management for Professionals | US2 | **P0** | Fullstack |
 | **#4** | [Profiles] Professional Public Profile & Working Hours Setup | US3 | **P0** | Fullstack |
@@ -19,27 +19,29 @@ This document translates the **Spec-Kit Project Specification** ([SPECIFICATION.
 
 ---
 
-## 📌 Issue #1: [Foundational] Project Setup, Design System & Prisma Schema
+## 📌 Issue #1: [Foundational] Project Setup, Design System & Supabase Database Setup
 
 ### 📋 Description
-Set up the foundational database schema, ORM configuration, and base design system components that all future user stories rely on.
+Set up the foundational Supabase project (managed PostgreSQL), database tables, client configuration, and base design system components that all future user stories rely on.
 
 - **Priority:** P0 (Blocking prerequisite)
-- **Labels:** `foundation`, `database`, `frontend`, `p0`
+- **Labels:** `foundation`, `database`, `supabase`, `frontend`, `p0`
 
 ### 🛠️ Implementation Tasks
 #### 🗄️ Database
-- [ ] Initialize Prisma ORM in the project (`npm install prisma @prisma/client`).
-- [ ] Define baseline models in `prisma/schema.prisma`:
-  - `User` (id, name, email, passwordHash, role: `PROFESSIONAL | CLIENT`, image, createdAt, updatedAt)
-  - `ProfessionalProfile` (id, userId, bio, headline, phone, address, workingDays, workingHoursStart, workingHoursEnd, slotDuration)
-  - `Service` (id, professionalId, title, description, price, duration, isActive, createdAt, updatedAt)
-  - `Appointment` (id, professionalId, serviceId, clientId, clientName, clientEmail, clientPhone, scheduledAt, endTime, status: `PENDING | CONFIRMED | COMPLETED | CANCELLED`, notes, createdAt)
-- [ ] Create initial migration (`npx prisma migrate dev --name init`).
-- [ ] Write a seed script (`prisma/seed.ts`) with 2 sample professionals, 4 services, and sample working hours.
+- [ ] Create a Supabase project at [supabase.com](https://supabase.com) and obtain Project URL & Anon Key.
+- [ ] Define baseline relational tables in Supabase SQL Editor / Table Editor:
+  - `profiles` (`id` references `auth.users(id)` or UUID, `name`, `email`, `role`: `'PROFESSIONAL' | 'CLIENT'`, `bio`, `headline`, `phone`, `address`, `working_days`, `working_hours_start`, `working_hours_end`, `slot_duration`, `created_at`, `updated_at`)
+  - `services` (`id` UUID primary key, `professional_id` references `profiles(id)`, `title`, `description`, `price` numeric, `duration` int, `is_active` bool, `created_at`, `updated_at`)
+  - `appointments` (`id` UUID primary key, `professional_id` references `profiles(id)`, `service_id` references `services(id)`, `client_id` nullable references `profiles(id)`, `client_name`, `client_email`, `client_phone`, `scheduled_at` timestamptz, `end_time` timestamptz, `status`: `'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'`, `notes`, `created_at`)
+- [ ] Add initial seed data (insert 2 sample professionals, 4 services, and working schedules in Supabase).
+- [ ] Configure Row Level Security (RLS) policies for public reads and authenticated owner writes.
 
 #### ⚙️ Backend
-- [ ] Create Prisma Client singleton instance in `lib/prisma.ts`.
+- [ ] Install Supabase client packages (`npm install @supabase/supabase-js @supabase/ssr`).
+- [ ] Create Supabase client singletons:
+  - `lib/supabase/client.ts` (browser client via `createBrowserClient`)
+  - `lib/supabase/server.ts` (server client via `createServerClient` for Server Components & Route Handlers)
 - [ ] Implement central API error handler utility and response wrapper in `lib/api-response.ts`.
 - [ ] Configure Zod schema validation helpers in `lib/validations/`.
 
@@ -54,7 +56,7 @@ Set up the foundational database schema, ORM configuration, and base design syst
 - [ ] Create global navigation Header (`components/Header.tsx`) and Footer (`components/Footer.tsx`).
 
 ### ✅ Acceptance Criteria
-- Running `npx prisma migrate dev` succeeds without errors.
+- Supabase connection test successfully queries the database from a Server Component.
 - Running `npm run dev` renders base layout with consistent typography and color system.
 
 ---
