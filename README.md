@@ -18,7 +18,7 @@
 - **Language:** TypeScript (Strict mode)
 - **Styling:** Tailwind CSS
 - **Authentication:** Auth.js v5 (NextAuth)
-- **Database:** Prisma ORM
+- **Database & Platform:** Supabase (Managed PostgreSQL)
 
 ## 🚀 Getting Started
 

@@ -51,7 +51,7 @@ The project addresses a critical real-world business problem in emerging markets
 - **Language:** TypeScript in strict mode (no usage of `any`)
 - **Styling & UX:** Tailwind CSS (utility-first, responsive layouts, defined color palette, form validation styling, loading skeletons, and empty-state illustrations)
 - **Authentication:** Auth.js v5 (NextAuth) with session management and role-based access control (`PROFESSIONAL` vs. `CLIENT`)
-- **Database & ORM:** PostgreSQL / SQLite with Prisma ORM
+- **Database & Platform:** Supabase (Managed PostgreSQL) with `@supabase/supabase-js` and `@supabase/ssr`
 - **Architecture:** React Server Components (RSC) by default for data fetching and SEO; Client Components (`'use client'`) strictly for interactive forms and calendar picker controls
 - **Key Views:**
   1. *Landing Page* (`/`): Value proposition, how it works, and CTA for professionals and clients.
