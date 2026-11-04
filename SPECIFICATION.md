@@ -3,7 +3,7 @@
 ## Project Title & Description
 **Viable Appointment Scheduler** is a clean, accessible booking platform designed for independent solo professionals (such as tutors, therapists, consultants, and coaches) and their clients. The application allows professionals to create a verified public profile, configure working hours, and manage their service offerings. Clients can discover professionals, browse services, check real-time availability, and schedule appointments in seconds.
 
-The project addresses a critical real-world business problem in emerging markets like Zimbabwe and worldwide, where solo entrepreneurs lose clients and waste hours manually juggling bookings through unstructured WhatsApp messages, phone calls, and paper notebooks. The MVP focuses on core booking, profile management, and appointment tracking workflows.
+The project addresses a critical real-world business problem in emerging markets worldwide, where solo entrepreneurs lose clients and waste hours manually juggling bookings through unstructured WhatsApp messages, phone calls, and paper notebooks. The MVP focuses on core booking, profile management, and appointment tracking workflows.
 
 ## Purpose & Target Audience
 - **Target Audience:**
