@@ -7,8 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "sync:issues": "node scripts/create-github-issues.mjs",
-    "assign:team": "node scripts/assign-team.mjs"
+    "sync:issues": "node scripts/create-github-issues.mjs"
   },
   "dependencies": {
     "next": "16.4.5",

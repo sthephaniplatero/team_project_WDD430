@@ -1,305 +1,252 @@
-# Viable Appointment Scheduler — Project Issues & Implementation Tasks
-
-This document translates the **Spec-Kit Project Specification** ([SPECIFICATION.md](./SPECIFICATION.md)) into well-defined, actionable GitHub Issues organized by User Story and foundational phases. Each issue breaks down tasks across **Database**, **Backend**, and **Frontend**, with clear acceptance criteria and priority levels.
-
----
-
-## Issue Overview & Roadmap
-
-| Issue # | Title | User Story | Priority | Primary Area |
-| :--- | :--- | :--- | :--- | :--- |
-| **#1** | [Foundational] Project Setup, Design System & MongoDB Database Setup | Infra | **P0** | Fullstack / DB |
-| **#2** | [Auth & Users] User Registration, Authentication & Role Management | US1 | **P0** | Fullstack |
-| **#3** | [Services] Services CRUD Management for Professionals | US2 | **P0** | Fullstack |
-| **#4** | [Profiles] Professional Public Profile & Working Hours Setup | US3 | **P0** | Fullstack |
-| **#5** | [Booking] Real-Time Slot Availability & Appointment Booking Engine | US4 | **P0** | Fullstack |
-| **#6** | [Dashboard] Appointments Management (View, Reschedule, Cancel) | US5 | **P0 / P1** | Fullstack |
-| **#7** | [UX & Quality] Responsive UI Polish, Loading States, Empty States & Form Validations | Polish | **P1** | Frontend |
-| **#8** | [Future Enhancements] WhatsApp Confirmation Links & Calendar Export (.ics) | US6 / US7 | **P2** | Fullstack |
-
----
-
-## 📌 Issue #1: [Foundational] Project Setup, Design System & MongoDB Database Setup
-
-### 📋 Description
-Set up the foundational MongoDB Atlas cluster, Mongoose models, database connection helper, and base design system components that all future user stories rely on.
-
-- **Priority:** P0 (Blocking prerequisite)
-- **Labels:** `foundation`, `database`, `mongodb`, `frontend`, `p0`
-
-### 🛠️ Implementation Tasks
-#### 🗄️ Database
-- [ ] Create a free MongoDB Atlas M0 cluster at [mongodb.com/atlas](https://www.mongodb.com/atlas), add a database user, allow team/Vercel IPs, and store the connection string as `MONGODB_URI` in `.env.local` (never commit it).
-- [ ] Define Mongoose schemas (see **Data Model** in [SPECIFICATION.md](./SPECIFICATION.md#data-model)):
-  - `models/User.ts` — `name`, `email` (unique), `passwordHash`, `role`: `'PROFESSIONAL' | 'CLIENT'`, `image`, `phone`, embedded `professionalProfile` (`headline`, `bio`, `category`, `location`, `workingDays`, `workingHoursStart`, `workingHoursEnd`, `timezone`), timestamps
-  - `models/Service.ts` — `professionalId` (ref `User`), `title`, `description`, `durationMinutes`, `price`, `currency`, `isActive`, timestamps
-  - `models/Appointment.ts` — `professionalId` (ref `User`), `clientId` (ref `User`), `serviceId` (ref `Service`), `serviceSnapshot`, `startTime`, `endTime`, `status`: `'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'`, `notes`, `cancelledAt`, `cancelledBy`, `cancellationReason`, timestamps
-- [ ] Add a seed script (`scripts/seed.mjs`) that inserts 2 sample professionals, 4 services, and 1 client.
-- [ ] Create indexes declared in the schemas (unique `email`; `{ professionalId, isActive }` on services; `{ professionalId, startTime }` and `{ clientId, startTime }` on appointments).
-
-#### ⚙️ Backend
-- [ ] Install Mongoose (`npm install mongoose`).
-- [ ] Create a cached connection helper `lib/db.ts` (stores the connection on `globalThis` so hot reloads and serverless invocations reuse it). The database is only accessed on the server (Server Components, Route Handlers, Server Actions), never from the browser.
-- [ ] Implement central API error handler utility and response wrapper in `lib/api-response.ts`.
-- [ ] Configure Zod schema validation helpers in `lib/validations/`.
-
-#### 💻 Frontend
-- [ ] Configure Tailwind CSS color palette (`brand`, `accent`, `muted`) and typography scale in `app/globals.css`.
-- [ ] Create reusable UI components in `components/ui/`:
-  - `Button.tsx` (primary, secondary, outline, destructive, loading spinner state)
-  - `Input.tsx` & `Textarea.tsx` (with label, helper text, and error states)
-  - `Card.tsx` (card container, header, content, footer)
-  - `Badge.tsx` (status badges: confirmed, pending, cancelled)
-  - `Modal.tsx` / `Dialog.tsx` (accessible dialog for forms and confirmations)
-- [ ] Create global navigation Header (`components/Header.tsx`) and Footer (`components/Footer.tsx`).
-
-### ✅ Acceptance Criteria
-- A Server Component successfully connects through `lib/db.ts` and reads seeded data from MongoDB.
-- Running `npm run dev` renders base layout with consistent typography and color system.
-
----
-
-## 📌 Issue #2: [Auth & Users] User Registration, Authentication & Role Management
-
-### 📋 Description
-**User Story 1:** As a user (professional or client), I want to create an account and sign in securely so that I can access my personalized dashboard and manage my bookings.
-
-- **Priority:** P0
-- **Labels:** `auth`, `backend`, `frontend`, `p0`
-
-### 🛠️ Implementation Tasks
-#### 🗄️ Database
-- [ ] Verify the `User` Mongoose model supports the Credentials provider (email + `passwordHash`) and the role enum (`PROFESSIONAL`, `CLIENT`).
-- [ ] Ensure the unique index on `User.email` is built, and handle the duplicate-key error (`E11000`) as an "email already in use" message.
-
-#### ⚙️ Backend
-- [ ] Install and configure **Auth.js v5** (`next-auth@beta` or compatible Auth.js) in `app/api/auth/[...nextauth]/route.ts`.
-- [ ] Implement password hashing with `bcryptjs`.
-- [ ] Create registration endpoint `POST /api/auth/register`:
-  - Validate email uniqueness, password strength (min 8 characters), name, and role.
-  - Return safe user object (excluding password hash).
-- [ ] Create route protection in `proxy.ts` (Next.js 16 renamed `middleware.ts` to `proxy.ts`) to restrict `/dashboard/*` routes to authenticated users.
-
-#### 💻 Frontend
-- [ ] Build `/register` page with a role selector (tab: *"I am a Professional"* vs. *"I want to book services"*).
-- [ ] Build `/login` page with email and password inputs.
-- [ ] Add client-side validation using React Hook Form and Zod.
-- [ ] Display inline error alerts for invalid credentials or existing email.
-- [ ] Update Header with user avatar / name dropdown and "Sign Out" button when logged in.
-
-### ✅ Acceptance Criteria
-- User can successfully register as either a `PROFESSIONAL` or `CLIENT`.
-- User can log in with valid credentials and is redirected to `/dashboard`.
-- Invalid login attempts display friendly error messages without page crash.
-- Unauthenticated users attempting to access `/dashboard` are redirected to `/login`.
-
----
-
-## 📌 Issue #3: [Services] Services CRUD Management for Professionals
-
-### 📋 Description
-**User Story 2:** As a professional, I want to create, read, update, and delete my service offerings so that clients know what services I offer, their prices, and durations.
-
-- **Priority:** P0
-- **Labels:** `services`, `crud`, `backend`, `frontend`, `p0`
-
-### 🛠️ Implementation Tasks
-#### 🗄️ Database
-- [ ] `Service.professionalId` is an `ObjectId` reference to `User` (MongoDB has no foreign keys, so the API must verify the referenced user exists and is a `PROFESSIONAL`).
-- [ ] Add the index `{ professionalId: 1, isActive: 1 }` for query performance.
-
-#### ⚙️ Backend
-- [ ] `GET /api/services`: List services for the authenticated professional (or by `?professionalId=xyz` for public view).
-- [ ] `POST /api/services`: Create a new service (fields: `title`, `description`, `price`, `duration` in minutes). Validate required fields.
-- [ ] `PUT /api/services/:id`: Update existing service details (verify professional owns the service).
-- [ ] `DELETE /api/services/:id`: Archive (`isActive: false`) if appointments reference the service; otherwise delete the document.
-
-#### 💻 Frontend
-- [ ] Create Services Management view at `/dashboard/services`.
-- [ ] Build `ServiceCard.tsx` displaying title, price, duration badge, description, and Action buttons (Edit, Delete).
-- [ ] Build `ServiceFormModal.tsx` for creating and editing services with price input (formatted in currency) and duration selector (15, 30, 45, 60, 90 mins) and currency selector (USD / KES).
-- [ ] Build delete confirmation dialog with warning.
-- [ ] Implement optimistic UI or instant state refresh upon creating/editing/deleting a service.
-- [ ] Add empty state view when a professional has not yet created any services.
-
-### ✅ Acceptance Criteria
-- Professional can add a service with valid title, duration, and price.
-- Changes to existing services persist in the database and reflect immediately on the UI.
-- Non-owners cannot edit or delete services belonging to another professional.
-
----
-
-## 📌 Issue #4: [Profiles] Professional Public Profile & Working Hours Setup
-
-### 📋 Description
-**User Story 3:** As a professional, I want to set up my public profile, bio, working hours, and contact info so that clients can discover me and check my availability.
-
-- **Priority:** P0
-- **Labels:** `profile`, `frontend`, `backend`, `p0`
-
-### 🛠️ Implementation Tasks
-#### 🗄️ Database
-- [ ] Define `workingDays` (array of integers `[1, 2, 3, 4, 5]` for Mon-Fri) in the embedded `User.professionalProfile` subdocument.
-- [ ] Store `workingHoursStart` (e.g. `"09:00"`), `workingHoursEnd` (e.g. `"17:00"`), and `timezone`.
-
-#### ⚙️ Backend
-- [ ] `GET /api/professionals/:id`: Fetch public profile, professional name, avatar, bio, working hours, and active services list.
-- [ ] `PATCH /api/professionals/:id`: Update the authenticated (owner) professional's profile and working schedule.
-- [ ] Validate working hours format (start time must be before end time).
-
-#### 💻 Frontend
-- [ ] Create Profile Setup / Edit tab in Dashboard (`/dashboard/profile`):
-  - Bio, headline, phone number, address/location.
-  - Working days checkboxes (Monday through Sunday).
-  - Working hours start/end dropdowns.
-- [ ] Build public profile page at `app/professionals/[id]/page.tsx`:
-  - Server-rendered for fast loading and SEO.
-  - Header banner with photo, name, title/profession, bio, and contact info.
-  - Grid of available services offered by the professional.
-  - "Book an Appointment" call to action.
-
-### ✅ Acceptance Criteria
-- Professional can save working hours (e.g. 9:00 AM - 5:00 PM, Monday to Friday).
-- Public URL `/professionals/[id]` renders the professional's profile correctly to any visitor without requiring login.
-- Updating profile in the dashboard immediately updates the public page.
-
----
-
-## 📌 Issue #5: [Booking] Real-Time Slot Availability & Appointment Booking Engine
-
-### 📋 Description
-**User Story 4:** As a client, I want to select a service, view available dates/times based on the professional's schedule, and book an appointment in seconds.
-
-- **Priority:** P0
-- **Labels:** `booking-engine`, `algorithm`, `backend`, `frontend`, `p0`
-
-### 🛠️ Implementation Tasks
-#### 🗄️ Database
-- [ ] Index `Appointment` on `{ professionalId: 1, startTime: 1 }` to accelerate availability lookups.
-- [ ] Prevent overlapping appointments for the same professional with a MongoDB transaction (`session.withTransaction`) around the overlap check and the insert, because MongoDB has no SQL-style constraints.
-
-#### ⚙️ Backend
-- [ ] Implement availability algorithm in `lib/availability.ts`:
-  - Calculate discrete time slots based on `workingHoursStart`, `workingHoursEnd`, and the selected service's `durationMinutes`.
-  - Filter out slots in the past.
-  - Query existing active appointments (`CONFIRMED` or `PENDING`) for that date and subtract booked slots.
-- [ ] `GET /api/professionals/:id/availability?serviceId=...&date=YYYY-MM-DD`: Return the professional's `timezone` and an array of available time slot strings (e.g., `["09:00", "09:45", "10:30", "14:00"]`).
-- [ ] `POST /api/appointments`: Create appointment booking:
-  - Inside a MongoDB transaction, check that no `PENDING`/`CONFIRMED` appointment overlaps `[startTime, endTime)`.
-  - If open, insert the appointment with status `CONFIRMED` and a `serviceSnapshot`.
-  - If conflicting, return HTTP 409 Conflict.
-
-#### 💻 Frontend
-- [ ] Build `BookingCalendar.tsx` component (date selector allowing user to pick upcoming dates).
-- [ ] Build `TimeSlotPicker.tsx` component (renders clickable chips for available hours; shows loading skeleton while fetching).
-- [ ] Build `BookingModal.tsx` / checkout step:
-  - Displays selected service, price, duration, date, and time.
-  - Inputs for client name, phone number, and optional appointment notes.
-  - "Confirm Booking" button with loading spinner.
-- [ ] Build Booking Success confirmation screen with summary and "Add to Dashboard" link.
-
-### ✅ Acceptance Criteria
-- Client only sees time slots that fall within working hours and are NOT already booked.
-- Booking a slot locks it; refreshing the calendar immediately shows that slot as unavailable.
-- Two users attempting to book the same slot concurrently results in the second user receiving a friendly conflict error.
-
----
-
-## 📌 Issue #6: [Dashboard] Appointments Management (View, Reschedule, Cancel)
-
-### 📋 Description
-**User Story 5:** As a client or professional, I want to view my upcoming appointments on a central dashboard, with the ability to reschedule or cancel if necessary.
-
-- **Priority:** P0 / P1
-- **Labels:** `dashboard`, `appointments`, `backend`, `frontend`, `p0`
-
-### 🛠️ Implementation Tasks
-#### 🗄️ Database
-- [ ] Support status transitions (see SPECIFICATION.md §6.2): MVP bookings start as `CONFIRMED` → `COMPLETED` (professional, after end) or `CANCELLED` (either party, before start). `PENDING` is reserved for future manual approval.
-- [ ] Store `cancelledAt` and optional `cancellationReason`.
-
-#### ⚙️ Backend
-- [ ] `GET /api/appointments`:
-  - If authenticated user is a `PROFESSIONAL`, return appointments where `professionalId = user.id`.
-  - If authenticated user is a `CLIENT`, return appointments where `clientId = user.id`.
-  - Support query filter `?tab=upcoming|past|cancelled` (rules in SPECIFICATION.md §6.2).
-- [ ] `PATCH /api/appointments/:id`:
-  - Update status (`CONFIRMED`, `COMPLETED`, `CANCELLED`).
-  - Reschedule: update `startTime` and `endTime` (validating in a transaction that the new slot is available).
-- [ ] `DELETE /api/appointments/:id`: Cancel appointment and release the reserved time slot.
-
-#### 💻 Frontend
-- [ ] Create Dashboard view at `app/dashboard/appointments/page.tsx`.
-- [ ] Add tab filters: **Upcoming Appointments**, **Past History**, and **Cancelled**.
-- [ ] Build `AppointmentCard.tsx`:
-  - Client name, service title, price, date & time badge, and status pill.
-  - Action buttons: "Reschedule" and "Cancel Appointment".
-- [ ] Build `RescheduleModal.tsx` (re-uses `BookingCalendar` and `TimeSlotPicker` to pick a new date/time).
-- [ ] Build `CancelModal.tsx` with confirmation prompt and reason textarea.
-- [ ] Add empty states for each tab when no appointments exist.
-
-### ✅ Acceptance Criteria
-- Professional sees all client bookings; client only sees their own bookings.
-- Cancelling an appointment updates the status to `CANCELLED` and makes that slot available on the booking calendar.
-- Rescheduled appointment updates the date/time and frees the previously occupied slot.
-
----
-
-## 📌 Issue #7: [UX & Quality] Responsive UI Polish, Loading States, Empty States & Form Validations
-
-### 📋 Description
-Implement a polished, responsive user experience meeting WDD430 quality standards: mobile-first responsiveness, loading skeletons, error boundaries, and accessible empty states.
-
-- **Priority:** P1
-- **Labels:** `ux`, `frontend`, `polish`, `p1`
-
-### 🛠️ Implementation Tasks
-#### 💻 Frontend
-- [ ] Mobile-first responsive audit: ensure all tables and grids collapse cleanly on screens `< 768px`.
-- [ ] Create `loading.tsx` skeletons for:
-  - Landing page
-  - Public profile booking page
-  - Dashboard appointments table
-- [ ] Implement `error.tsx` boundary components with friendly recovery buttons.
-- [ ] Add form validations with clear error messages using React Hook Form + Zod.
-- [ ] Build informative empty states with call-to-action buttons for:
-  - Professional with no services yet -> *"Create your first service"* button.
-  - Client with no bookings -> *"Browse professionals"* button.
-  - Day with no available slots -> *"Select another date"* message.
-
-### ✅ Acceptance Criteria
-- All forms show instant visual validation before submission.
-- Zero horizontal scrollbars or layout breakage on mobile viewports (375px+).
-- Page transitions display smooth skeleton loaders without layout shifts.
-
----
-
-## 📌 Issue #8: [Future Enhancements] WhatsApp Confirmation Links & Calendar Export (.ics)
-
-### 📋 Description
-Add value-added capabilities tailored for small businesses in local markets (Zimbabwe / worldwide): one-click WhatsApp appointment notifications and `.ics` calendar download.
-
-- **Priority:** P2
-- **Labels:** `enhancement`, `whatsapp`, `calendar`, `p2`
-
-### 🛠️ Implementation Tasks
-#### ⚙️ Backend & Frontend
-- [ ] Implement WhatsApp link generator (`lib/whatsapp.ts`):
-  - Generates `https://wa.me/<phone>?text=Hi%20<name>,%20your%20appointment%20for%20<service>%20is%20confirmed%20for%20<date>%20at%20<time>`.
-- [ ] Add "Send WhatsApp Confirmation" button to the professional's appointment card.
-- [ ] Implement iCalendar export (`.ics` file generation) in `app/api/appointments/:id/ics/route.ts` so clients can add the event to Google Calendar or Apple Calendar.
-
-### ✅ Acceptance Criteria
-- Clicking "WhatsApp Confirmation" opens WhatsApp Web or app with pre-filled appointment details.
-- Clicking "Add to Calendar" downloads a valid `.ics` file that imports into calendar apps.
-
----
-
-## 👥 Suggested Team Task Distribution (WDD430)
-
-| Team Member | Primary Focus Areas | Assigned Issues |
+# Viable Appointment Scheduler — 3-Week Delivery Plan (GitHub Issues)
+
+This file turns [SPECIFICATION.md](./SPECIFICATION.md) into **9 GitHub issues: 3 weeks (Week 04 → Week 06) × 3 team members**, one issue per person per week. `npm run sync:issues` reads it to create the issues.
+
+**How the plan works**
+- **No dependencies inside a week:** each issue only uses work merged in **earlier weeks**, plus the names already fixed in the spec (design tokens §8.2, data model §9, API paths §10). All three members start on Monday and work in parallel.
+- **Every week ends with a working increment** of the app that the team can demo.
+- **Merge by Friday:** each member merges their week's Pull Request (reviewed by one teammate, §13) before the next week starts, because next week's issues build on it.
+- Branch names: `feature/wNN-<name>-<topic>`, e.g. `feature/w04-anisa-design-system`.
+- **Every issue also meets the Definition of Done (§13):** acceptance criteria (§5) pass, works at 375px and 1280px, keyboard usable, `npm run lint` and `npm run build` pass.
+- **Zod schemas** go in `lib/validations/<area>.ts` (`auth.ts`, `service.ts`, `profile.ts`, `appointment.ts`), written by the owner of that area and reused by its forms and API.
+- **`package.json` conflicts:** in Week 04 all three members install packages. Pull `main` before installing, and if `package-lock.json` conflicts, take `main`'s version and run `npm install` again.
+
+| Member | GitHub | Main areas |
 | :--- | :--- | :--- |
-| **Sthephani Platero** | Project Architecture, Services CRUD & Dashboard Views | **#1, #3, #6** |
-| **Halia Yayra Khayat** | Authentication, Role Management & Route Protection | **#1, #2** |
-| **Anisa Chokwenda** | Professional Public Profiles & Working Schedule Management | **#4, #7** |
-| **Habyarimana Cassien** | Booking Engine, Availability Algorithm & Slot Concurrency | **#5, #8** |
+| **Sthephani Platero** | `@sthephaniplatero` | Database, authentication backend, services, dashboard, appointments |
+| **Anisa Chokwenda** | `@anichokwenda` | Design system, layout & landing, auth pages, public profile, professional settings, UX/accessibility |
+| **Habyarimana Cassien** | `@habyarimanacassien` | Availability engine, booking API & UI, reschedule, deployment |
+
+## Plan
+
+| Week | Sthephani | Anisa | Cassien | End-of-week increment |
+| :--- | :--- | :--- | :--- | :--- |
+| **04** | **#13** Database, models, seed & Auth.js backend | **#14** Design system, layout & landing page | **#15** Availability engine & booking UI components | Branded landing runs; DB seeded; register API works; availability logic tested |
+| **05** | **#16** Dashboard shell & services CRUD | **#17** Login/register pages & public profile | **#18** Availability, booking & reschedule APIs | Users sign up/in; professionals manage services; public profiles live; booking API works |
+| **06** | **#19** Appointments dashboard, cancel & reschedule | **#20** Browse professionals, profile settings & UX pass | **#21** Booking flow on the profile page & deployment | All MVP stories (US1–US7) work end to end on the live site |
+
+**Out of scope for these 3 weeks** (P2 in the spec): WhatsApp links, `.ics` export, email reminders, manual approval, reviews, payments.
+
+---
+
+## 📌 Issue #13: Week 04 — Sthephani: Database, Models, Seed & Auth.js Backend
+
+### 🎯 Goal
+Create the data layer and the authentication backend everything else uses. Spec: §7, §9, US1.
+
+- **Week:** 04 · **Priority:** P0
+- **Assignee:** `@sthephaniplatero`
+- **Labels:** `week-04`, `database`, `auth`, `backend`, `p0`
+- **Depends on:** nothing (start of project)
+
+### ✅ Tasks
+- [ ] Create the MongoDB Atlas M0 cluster, database user, and network access; database name `viable`.
+- [ ] Install `mongoose`, `next-auth@beta`, `bcryptjs`, and `zod`; create `lib/db.ts` (connection cached on `globalThis`).
+- [ ] Create `models/User.ts` (with embedded `professionalProfile` and defaults), `models/Service.ts`, `models/Appointment.ts` exactly as in §9, including indexes (§9.5).
+- [ ] Create `lib/api-response.ts` (`{ data }` / `{ error: { code, message, fields? } }`, §7.2).
+- [ ] Create `scripts/seed.mjs` + `npm run seed` (2 professionals, 4 services, 1 client, and appointments covering **every tab in §6.2**: upcoming `CONFIRMED`, past `CONFIRMED`, `COMPLETED`, and `CANCELLED`); share the demo logins with the team.
+- [ ] Configure Auth.js v5: `lib/auth.ts` + `app/api/auth/[...nextauth]/route.ts`, Credentials provider, bcryptjs, JWT session with `user.id` and `user.role`, `types/next-auth.d.ts`.
+- [ ] Export helpers `requireUser()` and `requireRole(role)` from `lib/auth.ts` (`401` / `403`).
+- [ ] `POST /api/auth/register` with Zod (`lib/validations/auth.ts`: name, email, password ≥ 8, role); `409` if the email exists; creates `professionalProfile` defaults for professionals.
+- [ ] Add `.env.example` (`MONGODB_URI`, `AUTH_SECRET`, `AUTH_URL`) and the setup steps to the README.
+
+### 🏁 Done when
+- `npm run seed` fills Atlas, and a Server Component can read the data through `lib/db.ts`.
+- `POST /api/auth/register` creates users, and signing in with a seeded account returns a session with `id` and `role`.
+
+---
+
+## 📌 Issue #14: Week 04 — Anisa: Design System, Layout & Landing Page
+
+### 🎯 Goal
+Build the look and feel and the shared UI kit every page uses. Spec: §8, §11.2.
+
+- **Week:** 04 · **Priority:** P0
+- **Assignee:** `@anichokwenda`
+- **Labels:** `week-04`, `design-system`, `frontend`, `p0`
+- **Depends on:** nothing (start of project)
+
+### ✅ Tasks
+- [ ] Define the design tokens from §8.2 in the `@theme` block of `app/globals.css` (`--color-brand`, `--color-accent`, `--color-surface`, `--color-card`, `--color-ink`, `--color-muted`, `--color-success`, `--color-warning`, `--color-danger`).
+- [ ] Install `lucide-react` and the Radix packages used by the UI kit (`@radix-ui/react-dialog`, `@radix-ui/react-tabs`).
+- [ ] Load **Inter** with `next/font/google` (replace Geist) and apply the type scale (§8.3).
+- [ ] Build `components/ui/`: `Button` (all variants + loading/disabled), `Input`, `Textarea`, `Select`, `Card`, `Badge`, `Modal` (Radix Dialog, focus trap, Esc), `Tabs`, `Avatar`, `Skeleton`, `EmptyState`.
+- [ ] Follow the contrast rules in §8.2 (dark text on amber buttons).
+- [ ] Update `app/layout.tsx` (title "Viable", description).
+- [ ] Build `components/layout/Header.tsx` (logo, links to `/professionals`, Login/Register) with a mobile menu, and `Footer.tsx`.
+- [ ] Build the landing page `/` with `components/landing/Hero`, `HowItWorks`, `CTASection`.
+- [ ] Build the presentational `components/services/ServiceCard` and `ServiceList` (props only: `title`, `description`, `durationMinutes`, `priceLabel` — an already formatted string, so the card doesn't need `lib/money.ts` this week — and `isActive`). `mode="public"` shows a **"Book" link to `?service=<serviceId>#booking`**; `mode="dashboard"` shows Edit/Delete buttons that call `onEdit` / `onDelete`. Both Week 05 issues reuse them.
+- [ ] Add `app/not-found.tsx`.
+
+### 🏁 Done when
+- `npm run dev` shows the branded landing page with Header and Footer at 375px and 1280px.
+- All UI components (`components/ui/`, `ServiceCard`, `ServiceList`) are ready for other members to use in Week 05.
+
+---
+
+## 📌 Issue #15: Week 04 — Cassien: Availability Engine & Booking UI Components
+
+### 🎯 Goal
+Build the slot-calculation logic and the calendar components the booking flow needs. Spec: §6.1, §8.5, US4.
+
+- **Week:** 04 · **Priority:** P0
+- **Assignee:** `@habyarimanacassien`
+- **Labels:** `week-04`, `booking-engine`, `frontend`, `p0`
+- **Depends on:** nothing (start of project)
+
+### ✅ Tasks
+- [ ] Install `date-fns`, `@date-fns/tz`, and **Vitest** (`npm run test`).
+- [ ] Implement `lib/availability.ts` as a **pure function**: input = working days/hours/timezone, service duration, date, existing appointments, "now"; output = free `"HH:mm"` slots. Follow every rule in §6.1 (60-day window, past slots hidden, overlap rule).
+- [ ] Implement `lib/money.ts` (minor units ↔ display with `Intl.NumberFormat`, USD/KES).
+- [ ] Unit tests: non-working day, fully booked day, slot ending after closing time, overlapping booking, today with past slots, 60-day limit.
+- [ ] `components/booking/BookingCalendar` (past, non-working, and > 60-day dates disabled; keyboard accessible). Props: `workingDays`, `selectedDate`, `onSelect`.
+- [ ] `components/booking/TimeSlotPicker` (available / selected / unavailable, loading skeleton, empty state). Props: `slots`, `loading`, `selected`, `onSelect`.
+- [ ] Style with the token class names fixed in §8.2 (`bg-brand`, `text-ink`, …), so the components don't wait for Anisa's UI kit.
+
+### 🏁 Done when
+- `npm run test` passes.
+- Both components render with sample data on a temporary page `app/dev/booking/page.tsx` (removed in Week 06).
+
+---
+
+## 📌 Issue #16: Week 05 — Sthephani: Dashboard Shell & Services CRUD
+
+### 🎯 Goal
+Signed-in users get their dashboard, and professionals manage their services. Spec: US2, §6.3, §11.2.
+
+- **Week:** 05 · **Priority:** P0
+- **Assignee:** `@sthephaniplatero`
+- **Labels:** `week-05`, `dashboard`, `services`, `p0`
+- **Depends on:** Week 04 (#13 models + auth helpers, #14 UI kit)
+
+### ✅ Tasks
+- [ ] `app/dashboard/layout.tsx`: session check, role-aware `DashboardSidebar` (§11.2), bottom navigation below 768px.
+- [ ] Redirect clients who open professional-only pages (`/dashboard/services`, `/dashboard/profile`) to `/dashboard`.
+- [ ] `/dashboard` overview page: greeting and the user's next 3 upcoming appointments (read-only).
+- [ ] `GET/POST /api/services`, `PUT/DELETE /api/services/:id` with Zod, `requireRole('PROFESSIONAL')`, ownership checks (`403`), and archive-instead-of-delete when appointments reference the service.
+- [ ] `/dashboard/services` page: `ServiceList` / `ServiceCard` from #14 in dashboard mode (prices formatted with `lib/money.ts` from #15), `ServiceFormModal` (duration 15/30/45/60/90, price + currency USD/KES, converted to minor units), `DeleteServiceDialog`, empty state "Create your first service".
+- [ ] The list refreshes right after create/edit/delete.
+
+### 🏁 Done when
+- A seeded professional signs in, sees the dashboard, and can create, edit, archive, and delete services.
+- A client cannot reach `/dashboard/services`, and the services API returns `403` to them.
+
+---
+
+## 📌 Issue #17: Week 05 — Anisa: Login/Register Pages & Public Profile
+
+### 🎯 Goal
+Users can sign up and sign in from the UI, and every professional has a public page. Spec: US1, US3, §10.
+
+- **Week:** 05 · **Priority:** P0
+- **Assignee:** `@anichokwenda`
+- **Labels:** `week-05`, `auth`, `profile`, `frontend`, `p0`
+- **Depends on:** Week 04 (#13 register API + Auth.js, #14 UI kit, #15 `lib/money.ts`)
+
+### ✅ Tasks
+- [ ] Install `react-hook-form` + `@hookform/resolvers`.
+- [ ] `/login` and `/register` pages with `LoginForm`, `RegisterForm`, `RoleSelector` (React Hook Form + the Zod schemas in `lib/validations/auth.ts`; inline errors; keep inputs except the password; wrong credentials show the generic "Invalid email or password"; redirect to `callbackUrl` or `/dashboard`).
+- [ ] `proxy.ts`: redirect signed-out users from `/dashboard/*` to `/login?callbackUrl=…`.
+- [ ] `UserMenu` in the Header (avatar/initials, Dashboard, Sign out) when signed in.
+- [ ] `GET /api/professionals/:id` (profile + working hours + **active** services; `404` for unknown ids or clients; never returns `passwordHash` or email).
+- [ ] `/professionals/[id]` page: `ProfileHeader`, `ServiceList` + `ServiceCard` (from #14) in public mode with prices formatted by `lib/money.ts`, an empty `<section id="booking">` where the booking panel goes in Week 06, `notFound()` handling.
+- [ ] `generateMetadata` with the professional's name and headline.
+
+### 🏁 Done when
+- A visitor registers as a professional or client, is signed in, and can sign out from the Header.
+- Opening `/dashboard` while signed out redirects to `/login`, and after logging in the user returns to `/dashboard`.
+- `/professionals/<seeded id>` shows the profile and its services; an unknown id shows the not-found page.
+
+---
+
+## 📌 Issue #18: Week 05 — Cassien: Availability, Booking & Reschedule APIs
+
+### 🎯 Goal
+The booking engine works through the API, with double-booking protection. Spec: US4, US5, US7, §6.1, §9.5, §10.
+
+- **Week:** 05 · **Priority:** P0
+- **Assignee:** `@habyarimanacassien`
+- **Labels:** `week-05`, `booking-engine`, `backend`, `deployment`, `p0`
+- **Depends on:** Week 04 (#13 models + auth helpers, #15 `lib/availability.ts`)
+
+### ✅ Tasks
+- [ ] `GET /api/professionals/:id/availability?serviceId=&date=` using `lib/availability.ts`; returns `{ timezone, slots }`; validates params with Zod.
+- [ ] `POST /api/appointments` (`requireRole('CLIENT')`): validate the service is active and belongs to the professional, compute `endTime`, check the overlap rule **inside a MongoDB transaction**, save `serviceSnapshot`, status `CONFIRMED`; `409` on conflict.
+- [ ] `PATCH /api/appointments/:id` with `{ action: "reschedule", startTime }` (participants only, before the original start): same transaction + overlap check, **ignoring the appointment itself**.
+- [ ] A script or test that sends two bookings for the same slot at the same time and confirms exactly one succeeds.
+- [ ] Unit tests for the reschedule overlap case.
+- [ ] **Set up Vercel early:** connect the repo, set `MONGODB_URI` and `AUTH_SECRET`, allow Vercel in Atlas network access. Every merge to `main` then deploys automatically, and every Pull Request gets a preview link for reviewers.
+
+### 🏁 Done when
+- With seeded accounts (e.g. via a REST client), a client gets free slots, books one, sees it disappear from availability, gets `409` for a double booking, and can reschedule.
+- `main` is deployed on Vercel and the site loads.
+
+---
+
+## 📌 Issue #19: Week 06 — Sthephani: Appointments Dashboard, Cancel & Reschedule
+
+### 🎯 Goal
+Both roles see and manage their appointments. Spec: US6, US7, §6.2.
+
+- **Week:** 06 · **Priority:** P0
+- **Assignee:** `@sthephaniplatero`
+- **Labels:** `week-06`, `appointments`, `dashboard`, `p0`
+- **Depends on:** Weeks 04–05 (#16 dashboard shell, #18 reschedule API, #15 calendar components)
+
+### ✅ Tasks
+- [ ] `GET /api/appointments?tab=upcoming|past|cancelled` following the tab rules in §6.2 (professional → `professionalId`, client → `clientId`).
+- [ ] `DELETE /api/appointments/:id` (participants only, before `startTime`): sets `CANCELLED`, `cancelledAt`, `cancelledBy`, optional reason.
+- [ ] `PATCH /api/appointments/:id` `{ action: "complete" }` (professional only, after `endTime`), in the same route as Cassien's reschedule action.
+- [ ] `/dashboard/appointments` page: `Tabs`, `AppointmentList`, `AppointmentCard` (service, other party, date/time with time zone, price from `serviceSnapshot`, status `Badge`), empty state per tab with a call to action ("Browse professionals" for clients, "Share your profile" for professionals).
+- [ ] `CancelModal` (confirmation + optional reason) and `RescheduleModal` (reuses `BookingCalendar` + `TimeSlotPicker` + the availability and reschedule APIs).
+- [ ] Show Reschedule / Cancel / Mark as completed only when §6.2 allows them; refresh the list after each action.
+
+### 🏁 Done when
+- Professionals and clients see their appointments in the right tabs and can cancel, reschedule, and complete them according to §6.2.
+
+---
+
+## 📌 Issue #20: Week 06 — Anisa: Browse Professionals, Profile Settings & UX Pass
+
+### 🎯 Goal
+Visitors can find professionals, professionals can edit their profile and hours, and the app is polished and accessible. Spec: US3, US4, §8, §13.
+
+- **Week:** 06 · **Priority:** P0 / P1
+- **Assignee:** `@anichokwenda`
+- **Labels:** `week-06`, `profile`, `ux`, `accessibility`, `p1`
+- **Depends on:** Weeks 04–05 (#14 UI kit, #16 dashboard shell, #17 public profile)
+
+### ✅ Tasks
+- [ ] `GET /api/professionals?q=&category=` and the `/professionals` page with `FilterBar` (search + category, synced to the URL) and `ProfessionalCard` grid, with an empty state.
+- [ ] `PATCH /api/professionals/:id` (owner only, Zod: headline, bio, category, phone, location, working days, start/end time with end after start, timezone).
+- [ ] `/dashboard/profile` page with `ProfileForm` + `WorkingHoursEditor`; revalidate `/professionals/[id]` after saving.
+- [ ] `loading.tsx` and `error.tsx` (with "Try again") for `/professionals`, `/professionals/[id]`, and `/dashboard`.
+- [ ] Responsive check (375 / 768 / 1280px) and keyboard + contrast check (§8.2) on every page built in Weeks 04–05; fix what fails.
+
+### 🏁 Done when
+- `/professionals` lists and filters the seeded professionals.
+- A professional changes their hours, and the public profile and available slots reflect it.
+- Every page works by keyboard and on a phone.
+
+---
+
+## 📌 Issue #21: Week 06 — Cassien: Booking Flow on the Profile Page & Deployment
+
+### 🎯 Goal
+Clients book from the UI, and the app is live. Spec: US4, US5, §7.3.
+
+- **Week:** 06 · **Priority:** P0
+- **Assignee:** `@habyarimanacassien`
+- **Labels:** `week-06`, `booking-engine`, `deployment`, `p0`
+- **Depends on:** Weeks 04–05 (#15 calendar components, #17 public profile page, #18 booking APIs)
+
+### ✅ Tasks
+- [ ] `BookingPanel` + `BookingModal` inside the `#booking` section of `/professionals/[id]` (service → date → slot → notes → "Confirm Booking"). Preselect the service from the `?service=<id>` link of the "Book" buttons (#14), and show the time zone label ("Times shown in Africa/Nairobi").
+- [ ] Signed-out visitors go to `/login?callbackUrl=…`; professionals see booking disabled; a `409` shows "This time was just taken, please pick another".
+- [ ] `/professionals/[id]/book/success` summary page with a link to `/dashboard/appointments`.
+- [ ] Remove the temporary `app/dev/booking` route.
+- [ ] **Final production check** (Vercel was set up in #18): seed demo data, walk through US1–US7 on the live site with the demo accounts, report any bug to its owner, and add the live URL and demo logins to the README.
+
+### 🏁 Done when
+- On the live site, a client picks a service, date, and time on a profile, books it, and lands on the success page; the slot is no longer offered.
+- The full US1–US7 walkthrough passes on the live site.
