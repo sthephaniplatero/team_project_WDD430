@@ -1,7 +1,7 @@
 # Viable Appointment Scheduler — Project Specification
 
 > **Status:** Ready for implementation · **Version:** 1.0 · **Last updated:** 2026-11-11
-> **Team:** Sthephani Platero · Halia Yayra Khayat · Anisa Chokwenda · Habyarimana Cassien
+> **Team:** Sthephani Platero · Anisa Chokwenda · Habyarimana Cassien · **Timeline:** 3 weeks (Week 04 → Week 06)
 > Task breakdown per issue lives in [ISSUES.md](./ISSUES.md).
 
 ## Table of Contents
@@ -162,6 +162,7 @@ Permissions are enforced **on the server** (Route Handlers / Server Actions). Hi
 | Passwords | **bcryptjs** (salt rounds: 10) |
 | Dates & time zones | **date-fns** + **@date-fns/tz** |
 | UI primitives | **Radix UI** primitives (via shadcn/ui patterns) for Dialog, Tabs, Popover; **lucide-react** icons |
+| Testing | **Vitest** unit tests for business logic (`lib/availability.ts`, `lib/money.ts`); each Pull Request is tested manually against the acceptance criteria in §5 |
 | Hosting | **Vercel** (app) + **MongoDB Atlas** (database) |
 
 ### 7.2 Architecture rules
@@ -447,7 +448,7 @@ All endpoints live under `app/api/` and use the response format in [7.2](#72-arc
 | `/professionals` | `app/professionals/page.tsx` | Public | Browse/search by name or category | US4 |
 | `/professionals/[id]` | `app/professionals/[id]/page.tsx` | Public (booking: clients) | Profile, services, calendar, time slots, booking | US3, US4, US5 |
 | `/professionals/[id]/book/success` | `app/professionals/[id]/book/success/page.tsx` | Client | Booking confirmation summary | US5 |
-| `/dashboard` | `app/dashboard/page.tsx` | Signed in | Overview: next appointments + `StatCard`s | US6 |
+| `/dashboard` | `app/dashboard/page.tsx` | Signed in | Overview: greeting + next 3 upcoming appointments (`StatCard`s if time allows) | US6 |
 | `/dashboard/appointments` | `app/dashboard/appointments/page.tsx` | Signed in | Upcoming / Past / Cancelled tabs; reschedule, cancel, complete | US6, US7 |
 | `/dashboard/services` | `app/dashboard/services/page.tsx` | Professional | Services CRUD | US2 |
 | `/dashboard/profile` | `app/dashboard/profile/page.tsx` | Professional | Edit profile and working hours | US3 |
@@ -460,7 +461,7 @@ Also: `app/layout.tsx` (root layout), `app/dashboard/layout.tsx` (sidebar + sess
 - `Footer`: links, copyright
 - `DashboardSidebar`: role-aware navigation. Professionals: Overview, Appointments, Services, Profile. Clients: Overview, Appointments, Find professionals. Becomes a bottom bar on mobile.
 
-**UI primitives** (`components/ui/`): `Button`, `Input`, `Textarea`, `Select`, `Card`, `Badge`, `Modal`, `Tabs`, `Avatar`, `Skeleton`, `EmptyState`, `StatCard` (styling in [section 8](#8-design-theme--branding))
+**UI primitives** (`components/ui/`): `Button`, `Input`, `Textarea`, `Select`, `Card`, `Badge`, `Modal`, `Tabs`, `Avatar`, `Skeleton`, `EmptyState`, `StatCard` (P1, optional) (styling in [section 8](#8-design-theme--branding))
 
 **Landing** (`components/landing/`): `Hero`, `HowItWorks`, `CTASection`
 
@@ -522,7 +523,6 @@ graph TD
     Main --> DashLayout["DashboardLayout (app/dashboard/layout.tsx)"]
     DashLayout --> DashboardSidebar
     DashLayout --> DashHome["/dashboard"]
-    DashHome --> StatCard
     DashHome --> AppointmentCard
     DashLayout --> DashAppts["/dashboard/appointments"]
     DashAppts --> AppointmentList --> AppointmentCard
@@ -539,35 +539,28 @@ graph TD
 
 > Every feature component is built from the shared `components/ui/` primitives.
 
-### 11.4 Week 04 implementation priorities
-Week 04 builds the foundation everything else plugs into: database, auth, app shell, and the read-only pages. Pages can use seed data until their API is ready.
+### 11.4 Delivery plan (3 weeks × 3 members)
+The MVP is built in **3 weeks (Week 04 → Week 06)** by **3 members**, as **9 GitHub issues (one per member per week)**. Full task lists are in [ISSUES.md](./ISSUES.md). **Issues in the same week never depend on each other**; they only build on work merged in earlier weeks and on the names fixed in this spec. Every week ends with a working increment.
 
-| # | Item | Why now | Owner (Issue) |
-| :--- | :--- | :--- | :--- |
-| **1** | MongoDB Atlas cluster, `lib/db.ts`, the 3 Mongoose models, `scripts/seed.mjs`, `.env.example` | Every feature reads or writes this data | Sthephani (#1) |
-| **1** | Design tokens in `globals.css`, Inter font, `RootLayout`, `Header`, `Footer` | Every page depends on them | Sthephani (#1) |
-| **1** | UI primitives: `Button`, `Input`, `Card`, `Badge`, `Modal`, `Skeleton`, `EmptyState` | Shared building blocks | Sthephani (#1) |
-| **1** | Auth.js setup, `POST /api/auth/register`, `/login`, `/register`, `proxy.ts` | Auth gates the dashboard and booking | Halia (#2) |
-| **2** | `/` landing page | Entry point for both user types | Anisa (#4) |
-| **2** | `/professionals/[id]` with `ProfileHeader`, `ServiceList`, `ServiceCard` (read-only) | Core public page; booking builds on it | Anisa (#4) |
-| **2** | `DashboardLayout` + `DashboardSidebar` + `/dashboard` shell | Container for all signed-in views | Sthephani (#6) |
-| **3** | `/dashboard/services` with `ServiceFormModal` + services API | First full CRUD feature | Sthephani (#3) |
-| **3** | `lib/availability.ts` + `BookingCalendar`, `TimeSlotPicker` (UI with seed data) | The booking engine plugs in next week | Cassien (#5) |
-
-**Week 05+:** `/professionals` + `FilterBar`, `BookingModal` + `POST /api/appointments` + success page, `/dashboard/appointments` with `RescheduleModal` / `CancelModal`, `/dashboard/profile` working-hours editor, and the `loading.tsx` / `error.tsx` / responsive polish pass (#7).
+| Week | Sthephani | Anisa | Cassien | Increment |
+| :--- | :--- | :--- | :--- | :--- |
+| **04** | **#1** MongoDB, models, seed, Auth.js backend, register API, `proxy.ts` | **#2** Design tokens, Inter, UI kit, layout, landing, `ServiceCard` | **#3** `lib/availability.ts` + tests, `BookingCalendar`, `TimeSlotPicker` | Branded app runs; data seeded; register API works |
+| **05** | **#4** Dashboard shell + services CRUD | **#5** Login/register pages, `UserMenu`, public profile + API | **#6** Availability, booking (transaction) & reschedule APIs | Sign up/in; pros manage services; profiles live; booking API works |
+| **06** | **#7** Appointments dashboard, cancel, complete, reschedule UI | **#8** `/professionals` + `FilterBar`, profile settings, UX/a11y pass | **#9** Booking UI on the profile page + Vercel deployment | US1–US7 work end to end on the live site |
 
 ## 12. Implementation Priority
-- **P0 — Critical MVP**
+- **P0 — MVP, delivered in Weeks 04–06**
   - Sign up, sign in, sign out, and protected routes (US1).
   - Services CRUD (US2).
   - Professional public profile and working hours (US3).
-  - Availability calculation and booking with double-booking protection (US4, US5).
-  - Appointments list on the dashboard (US6).
-- **P1 — Core enhancements**
-  - Reschedule, cancel, and "mark as completed" (US7).
-  - `/professionals` browse and search with `FilterBar` (US4).
-  - Loading skeletons, empty states, error boundaries, and the full responsive/accessibility pass.
-- **P2 — Future extensions**
+  - Browse professionals, availability, and booking with double-booking protection (US4, US5).
+  - Appointments dashboard with reschedule, cancel, and "mark as completed" (US6, US7).
+  - Loading/empty/error states, responsive layout, keyboard and contrast checks.
+  - Deployment on Vercel.
+- **P1 — If time allows**
+  - `StatCard` metrics on the dashboard overview.
+  - Lighthouse ≥ 90 and SEO extras (sitemap, Open Graph images).
+- **P2 — Future extensions (not planned for this course)**
   - WhatsApp confirmation links, email reminders.
   - Manual booking approval (`PENDING` status) and cancellation-window policies.
   - Google Calendar sync, `.ics` export.
@@ -575,7 +568,7 @@ Week 04 builds the foundation everything else plugs into: database, auth, app sh
   - Online payments (Stripe / M-Pesa / EcoCash).
 
 ## 13. Team Conventions & Definition of Done
-- **Branches:** `feature/<issue#>-short-name` from `main`; open a Pull Request with at least **1 teammate review** before merging. No direct pushes to `main`.
+- **Branches:** `feature/wNN-<name>-<topic>` (e.g. `feature/w04-anisa-design-system`) from `main`; open a Pull Request with at least **1 teammate review** before merging. No direct pushes to `main`.
 - **Commits:** Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`).
 - **Code:** TypeScript strict, no `any`, `npm run lint` and `npm run build` pass with no errors.
 - **A task is "done" when:**

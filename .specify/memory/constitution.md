@@ -30,6 +30,6 @@ Leverage Next.js App Router patterns cleanly:
 - Features are implemented following the prioritized specifications (P0 before P1, P1 before P2).
 
 ## Governance
-This Constitution establishes the non-negotiable coding and architectural standards for the development team. Any architectural changes must be discussed and agreed upon by the team members (Halia, Sthephani, Anisa, Habyarimana).
+This Constitution establishes the non-negotiable coding and architectural standards for the development team. Any architectural changes must be discussed and agreed upon by the team members (Sthephani, Anisa, Habyarimana).
 
 **Version**: 1.0.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-04
