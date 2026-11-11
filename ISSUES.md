@@ -8,7 +8,7 @@ This document translates the **Spec-Kit Project Specification** ([SPECIFICATION.
 
 | Issue # | Title | User Story | Priority | Primary Area |
 | :--- | :--- | :--- | :--- | :--- |
-| **#1** | [Foundational] Project Setup, Design System & Supabase Database Setup | Infra | **P0** | Fullstack / DB |
+| **#1** | [Foundational] Project Setup, Design System & MongoDB Database Setup | Infra | **P0** | Fullstack / DB |
 | **#2** | [Auth & Users] User Registration, Authentication & Role Management | US1 | **P0** | Fullstack |
 | **#3** | [Services] Services CRUD Management for Professionals | US2 | **P0** | Fullstack |
 | **#4** | [Profiles] Professional Public Profile & Working Hours Setup | US3 | **P0** | Fullstack |
@@ -19,29 +19,27 @@ This document translates the **Spec-Kit Project Specification** ([SPECIFICATION.
 
 ---
 
-## 📌 Issue #1: [Foundational] Project Setup, Design System & Supabase Database Setup
+## 📌 Issue #1: [Foundational] Project Setup, Design System & MongoDB Database Setup
 
 ### 📋 Description
-Set up the foundational Supabase project (managed PostgreSQL), database tables, client configuration, and base design system components that all future user stories rely on.
+Set up the foundational MongoDB Atlas cluster, Mongoose models, database connection helper, and base design system components that all future user stories rely on.
 
 - **Priority:** P0 (Blocking prerequisite)
-- **Labels:** `foundation`, `database`, `supabase`, `frontend`, `p0`
+- **Labels:** `foundation`, `database`, `mongodb`, `frontend`, `p0`
 
 ### 🛠️ Implementation Tasks
 #### 🗄️ Database
-- [ ] Create a Supabase project at [supabase.com](https://supabase.com) and obtain Project URL & Anon Key.
-- [ ] Define baseline relational tables in Supabase SQL Editor / Table Editor:
-  - `profiles` (`id` references `auth.users(id)` or UUID, `name`, `email`, `role`: `'PROFESSIONAL' | 'CLIENT'`, `bio`, `headline`, `phone`, `address`, `working_days`, `working_hours_start`, `working_hours_end`, `slot_duration`, `created_at`, `updated_at`)
-  - `services` (`id` UUID primary key, `professional_id` references `profiles(id)`, `title`, `description`, `price` numeric, `duration` int, `is_active` bool, `created_at`, `updated_at`)
-  - `appointments` (`id` UUID primary key, `professional_id` references `profiles(id)`, `service_id` references `services(id)`, `client_id` nullable references `profiles(id)`, `client_name`, `client_email`, `client_phone`, `scheduled_at` timestamptz, `end_time` timestamptz, `status`: `'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'`, `notes`, `created_at`)
-- [ ] Add initial seed data (insert 2 sample professionals, 4 services, and working schedules in Supabase).
-- [ ] Configure Row Level Security (RLS) policies for public reads and authenticated owner writes.
+- [ ] Create a free MongoDB Atlas M0 cluster at [mongodb.com/atlas](https://www.mongodb.com/atlas), add a database user, allow team/Vercel IPs, and store the connection string as `MONGODB_URI` in `.env.local` (never commit it).
+- [ ] Define Mongoose schemas (see **Data Model** in [SPECIFICATION.md](./SPECIFICATION.md#data-model)):
+  - `models/User.ts` — `name`, `email` (unique), `passwordHash`, `role`: `'PROFESSIONAL' | 'CLIENT'`, `image`, `phone`, embedded `professionalProfile` (`headline`, `bio`, `category`, `location`, `workingDays`, `workingHoursStart`, `workingHoursEnd`, `timezone`), timestamps
+  - `models/Service.ts` — `professionalId` (ref `User`), `title`, `description`, `durationMinutes`, `price`, `currency`, `isActive`, timestamps
+  - `models/Appointment.ts` — `professionalId` (ref `User`), `clientId` (ref `User`), `serviceId` (ref `Service`), `serviceSnapshot`, `startTime`, `endTime`, `status`: `'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'`, `notes`, `cancelledAt`, `cancelledBy`, `cancellationReason`, timestamps
+- [ ] Add a seed script (`scripts/seed.mjs`) that inserts 2 sample professionals, 4 services, and 1 client.
+- [ ] Create indexes declared in the schemas (unique `email`; `{ professionalId, isActive }` on services; `{ professionalId, startTime }` and `{ clientId, startTime }` on appointments).
 
 #### ⚙️ Backend
-- [ ] Install Supabase client packages (`npm install @supabase/supabase-js @supabase/ssr`).
-- [ ] Create Supabase client singletons:
-  - `lib/supabase/client.ts` (browser client via `createBrowserClient`)
-  - `lib/supabase/server.ts` (server client via `createServerClient` for Server Components & Route Handlers)
+- [ ] Install Mongoose (`npm install mongoose`).
+- [ ] Create a cached connection helper `lib/db.ts` (stores the connection on `globalThis` so hot reloads and serverless invocations reuse it). The database is only accessed on the server (Server Components, Route Handlers, Server Actions), never from the browser.
 - [ ] Implement central API error handler utility and response wrapper in `lib/api-response.ts`.
 - [ ] Configure Zod schema validation helpers in `lib/validations/`.
 
@@ -56,7 +54,7 @@ Set up the foundational Supabase project (managed PostgreSQL), database tables, 
 - [ ] Create global navigation Header (`components/Header.tsx`) and Footer (`components/Footer.tsx`).
 
 ### ✅ Acceptance Criteria
-- Supabase connection test successfully queries the database from a Server Component.
+- A Server Component successfully connects through `lib/db.ts` and reads seeded data from MongoDB.
 - Running `npm run dev` renders base layout with consistent typography and color system.
 
 ---
@@ -71,16 +69,16 @@ Set up the foundational Supabase project (managed PostgreSQL), database tables, 
 
 ### 🛠️ Implementation Tasks
 #### 🗄️ Database
-- [ ] Verify `User` model supports credentials provider (email + hashed password) and role enum (`PROFESSIONAL`, `CLIENT`).
-- [ ] Ensure unique constraint on `User.email`.
+- [ ] Verify the `User` Mongoose model supports the Credentials provider (email + `passwordHash`) and the role enum (`PROFESSIONAL`, `CLIENT`).
+- [ ] Ensure the unique index on `User.email` is built, and handle the duplicate-key error (`E11000`) as an "email already in use" message.
 
 #### ⚙️ Backend
 - [ ] Install and configure **Auth.js v5** (`next-auth@beta` or compatible Auth.js) in `app/api/auth/[...nextauth]/route.ts`.
 - [ ] Implement password hashing with `bcryptjs`.
 - [ ] Create registration endpoint `POST /api/auth/register`:
-  - Validate email uniqueness, password strength (min 6 characters), name, and role.
+  - Validate email uniqueness, password strength (min 8 characters), name, and role.
   - Return safe user object (excluding password hash).
-- [ ] Create route protection middleware (`middleware.ts`) to restrict `/dashboard/*` routes to authenticated users.
+- [ ] Create route protection in `proxy.ts` (Next.js 16 renamed `middleware.ts` to `proxy.ts`) to restrict `/dashboard/*` routes to authenticated users.
 
 #### 💻 Frontend
 - [ ] Build `/register` page with a role selector (tab: *"I am a Professional"* vs. *"I want to book services"*).
@@ -107,19 +105,19 @@ Set up the foundational Supabase project (managed PostgreSQL), database tables, 
 
 ### 🛠️ Implementation Tasks
 #### 🗄️ Database
-- [ ] Ensure foreign key relation between `Service.professionalId` and `User.id`.
-- [ ] Add index on `Service.professionalId` for query performance.
+- [ ] `Service.professionalId` is an `ObjectId` reference to `User` (MongoDB has no foreign keys, so the API must verify the referenced user exists and is a `PROFESSIONAL`).
+- [ ] Add the index `{ professionalId: 1, isActive: 1 }` for query performance.
 
 #### ⚙️ Backend
 - [ ] `GET /api/services`: List services for the authenticated professional (or by `?professionalId=xyz` for public view).
 - [ ] `POST /api/services`: Create a new service (fields: `title`, `description`, `price`, `duration` in minutes). Validate required fields.
 - [ ] `PUT /api/services/:id`: Update existing service details (verify professional owns the service).
-- [ ] `DELETE /api/services/:id`: Soft delete / archive or remove service (check if active appointments are linked).
+- [ ] `DELETE /api/services/:id`: Archive (`isActive: false`) if appointments reference the service; otherwise delete the document.
 
 #### 💻 Frontend
 - [ ] Create Services Management view at `/dashboard/services`.
 - [ ] Build `ServiceCard.tsx` displaying title, price, duration badge, description, and Action buttons (Edit, Delete).
-- [ ] Build `ServiceFormModal.tsx` for creating and editing services with price input (formatted in currency) and duration selector (15, 30, 45, 60 mins).
+- [ ] Build `ServiceFormModal.tsx` for creating and editing services with price input (formatted in currency) and duration selector (15, 30, 45, 60, 90 mins) and currency selector (USD / KES).
 - [ ] Build delete confirmation dialog with warning.
 - [ ] Implement optimistic UI or instant state refresh upon creating/editing/deleting a service.
 - [ ] Add empty state view when a professional has not yet created any services.
@@ -141,12 +139,12 @@ Set up the foundational Supabase project (managed PostgreSQL), database tables, 
 
 ### 🛠️ Implementation Tasks
 #### 🗄️ Database
-- [ ] Define `workingDays` (array of integers `[1, 2, 3, 4, 5]` for Mon-Fri) in `ProfessionalProfile`.
-- [ ] Store `workingHoursStart` (e.g. `"09:00"`) and `workingHoursEnd` (e.g. `"17:00"`).
+- [ ] Define `workingDays` (array of integers `[1, 2, 3, 4, 5]` for Mon-Fri) in the embedded `User.professionalProfile` subdocument.
+- [ ] Store `workingHoursStart` (e.g. `"09:00"`), `workingHoursEnd` (e.g. `"17:00"`), and `timezone`.
 
 #### ⚙️ Backend
 - [ ] `GET /api/professionals/:id`: Fetch public profile, professional name, avatar, bio, working hours, and active services list.
-- [ ] `PATCH /api/professionals/profile`: Update authenticated professional's profile and working schedule.
+- [ ] `PATCH /api/professionals/:id`: Update the authenticated (owner) professional's profile and working schedule.
 - [ ] Validate working hours format (start time must be before end time).
 
 #### 💻 Frontend
@@ -177,18 +175,18 @@ Set up the foundational Supabase project (managed PostgreSQL), database tables, 
 
 ### 🛠️ Implementation Tasks
 #### 🗄️ Database
-- [ ] Index `Appointment` on `(professionalId, scheduledAt)` to accelerate availability lookups.
-- [ ] Ensure database constraints or transaction logic prevent overlapping appointments for the same professional.
+- [ ] Index `Appointment` on `{ professionalId: 1, startTime: 1 }` to accelerate availability lookups.
+- [ ] Prevent overlapping appointments for the same professional with a MongoDB transaction (`session.withTransaction`) around the overlap check and the insert, because MongoDB has no SQL-style constraints.
 
 #### ⚙️ Backend
 - [ ] Implement availability algorithm in `lib/availability.ts`:
-  - Calculate discrete time slots based on `workingHoursStart`, `workingHoursEnd`, and `slotDuration`.
+  - Calculate discrete time slots based on `workingHoursStart`, `workingHoursEnd`, and the selected service's `durationMinutes`.
   - Filter out slots in the past.
   - Query existing active appointments (`CONFIRMED` or `PENDING`) for that date and subtract booked slots.
-- [ ] `GET /api/professionals/:id/availability?date=YYYY-MM-DD`: Return array of available time slot strings (e.g., `["09:00", "09:45", "10:30", "14:00"]`).
+- [ ] `GET /api/professionals/:id/availability?serviceId=...&date=YYYY-MM-DD`: Return the professional's `timezone` and an array of available time slot strings (e.g., `["09:00", "09:45", "10:30", "14:00"]`).
 - [ ] `POST /api/appointments`: Create appointment booking:
-  - Check in a database transaction that the requested time slot is still open.
-  - If open, insert appointment with status `CONFIRMED`.
+  - Inside a MongoDB transaction, check that no `PENDING`/`CONFIRMED` appointment overlaps `[startTime, endTime)`.
+  - If open, insert the appointment with status `CONFIRMED` and a `serviceSnapshot`.
   - If conflicting, return HTTP 409 Conflict.
 
 #### 💻 Frontend
@@ -217,17 +215,17 @@ Set up the foundational Supabase project (managed PostgreSQL), database tables, 
 
 ### 🛠️ Implementation Tasks
 #### 🗄️ Database
-- [ ] Support status transitions: `PENDING` → `CONFIRMED` → `COMPLETED` or `CANCELLED`.
+- [ ] Support status transitions (see SPECIFICATION.md §6.2): MVP bookings start as `CONFIRMED` → `COMPLETED` (professional, after end) or `CANCELLED` (either party, before start). `PENDING` is reserved for future manual approval.
 - [ ] Store `cancelledAt` and optional `cancellationReason`.
 
 #### ⚙️ Backend
 - [ ] `GET /api/appointments`:
   - If authenticated user is a `PROFESSIONAL`, return appointments where `professionalId = user.id`.
   - If authenticated user is a `CLIENT`, return appointments where `clientId = user.id`.
-  - Support query filter `?status=upcoming|past|cancelled`.
+  - Support query filter `?tab=upcoming|past|cancelled` (rules in SPECIFICATION.md §6.2).
 - [ ] `PATCH /api/appointments/:id`:
   - Update status (`CONFIRMED`, `COMPLETED`, `CANCELLED`).
-  - Reschedule: update `scheduledAt` and `endTime` (validating that the new slot is available).
+  - Reschedule: update `startTime` and `endTime` (validating in a transaction that the new slot is available).
 - [ ] `DELETE /api/appointments/:id`: Cancel appointment and release the reserved time slot.
 
 #### 💻 Frontend

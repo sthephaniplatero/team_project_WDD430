@@ -18,7 +18,7 @@
 - **Language:** TypeScript (Strict mode)
 - **Styling:** Tailwind CSS
 - **Authentication:** Auth.js v5 (NextAuth)
-- **Database & Platform:** Supabase (Managed PostgreSQL)
+- **Database:** MongoDB Atlas + Mongoose
 
 ## 🚀 Getting Started
 
