@@ -5,6 +5,7 @@
 //   npm run sync:issues                (creates the issues)
 //   $env:PROJECT_NUMBER="1"; npm run sync:issues   (also adds them to that GitHub Project board)
 //   $env:DRY_RUN="1"; npm run sync:issues          (only prints what would be created)
+//   $env:UPDATE="1"; npm run sync:issues           (edits existing issues #N from "Issue #N:" headings)
 //
 // Running it twice creates duplicates, so run it only once per plan.
 import fs from 'node:fs';
@@ -28,6 +29,7 @@ const issues = content
   .slice(1)
   .map((section) => {
     const lines = section.trim().split('\n');
+    const number = lines[0].match(/^Issue #(\d+):/)?.[1];
     const title = lines[0].replace(/^Issue #\d+:\s*/, '').trim();
 
     const labelLine = section.match(/- \*\*Labels:\*\*\s*(.*)/);
@@ -41,6 +43,7 @@ const issues = content
     if (sep !== -1) body = body.slice(0, sep);
 
     return {
+      number,
       title,
       labels,
       assignees,
@@ -68,6 +71,23 @@ const allLabels = [...new Set(issues.flatMap((i) => i.labels))];
 for (const label of allLabels) {
   const color = label.startsWith('week-') ? '0F766E' : label.startsWith('p') && label.length === 2 ? 'F59E0B' : '64748B';
   gh(['label', 'create', label, '--repo', `${owner}/${repo}`, '--color', color, '--force']);
+}
+
+// UPDATE=1: edit the existing issues (number taken from "Issue #N:" in ISSUES.md) instead of creating new ones.
+if (process.env.UPDATE) {
+  for (const issue of issues) {
+    const bodyFile = path.join(os.tmpdir(), `viable-issue-${issue.number}.md`);
+    fs.writeFileSync(bodyFile, issue.body, 'utf-8');
+    try {
+      gh(['issue', 'edit', issue.number, '--repo', `${owner}/${repo}`, '--title', issue.title, '--body-file', bodyFile]);
+      console.log(`✏️  #${issue.number} ${issue.title} updated`);
+    } catch (err) {
+      console.log(`❌ #${issue.number}: ${err.stderr || err.message}`);
+    } finally {
+      fs.rmSync(bodyFile, { force: true });
+    }
+  }
+  process.exit(0);
 }
 
 for (const issue of issues) {

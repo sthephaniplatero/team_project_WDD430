@@ -18,15 +18,15 @@ This file turns [SPECIFICATION.md](./SPECIFICATION.md) into **9 GitHub issues: 3
 
 | Week | Sthephani | Anisa | Cassien | End-of-week increment |
 | :--- | :--- | :--- | :--- | :--- |
-| **04** | **#1** Database, models, seed & Auth.js backend | **#2** Design system, layout & landing page | **#3** Availability engine & booking UI components | Branded landing runs; DB seeded; register API works; availability logic tested |
-| **05** | **#4** Dashboard shell & services CRUD | **#5** Login/register pages & public profile | **#6** Availability, booking & reschedule APIs | Users sign up/in; professionals manage services; public profiles live; booking API works |
-| **06** | **#7** Appointments dashboard, cancel & reschedule | **#8** Browse professionals, profile settings & UX pass | **#9** Booking flow on the profile page & deployment | All MVP stories (US1–US7) work end to end on the live site |
+| **04** | **#13** Database, models, seed & Auth.js backend | **#14** Design system, layout & landing page | **#15** Availability engine & booking UI components | Branded landing runs; DB seeded; register API works; availability logic tested |
+| **05** | **#16** Dashboard shell & services CRUD | **#17** Login/register pages & public profile | **#18** Availability, booking & reschedule APIs | Users sign up/in; professionals manage services; public profiles live; booking API works |
+| **06** | **#19** Appointments dashboard, cancel & reschedule | **#20** Browse professionals, profile settings & UX pass | **#21** Booking flow on the profile page & deployment | All MVP stories (US1–US7) work end to end on the live site |
 
 **Out of scope for these 3 weeks** (P2 in the spec): WhatsApp links, `.ics` export, email reminders, manual approval, reviews, payments.
 
 ---
 
-## 📌 Issue #1: Week 04 — Sthephani: Database, Models, Seed & Auth.js Backend
+## 📌 Issue #13: Week 04 — Sthephani: Database, Models, Seed & Auth.js Backend
 
 ### 🎯 Goal
 Create the data layer and the authentication backend everything else uses. Spec: §7, §9, US1.
@@ -54,7 +54,7 @@ Create the data layer and the authentication backend everything else uses. Spec:
 
 ---
 
-## 📌 Issue #2: Week 04 — Anisa: Design System, Layout & Landing Page
+## 📌 Issue #14: Week 04 — Anisa: Design System, Layout & Landing Page
 
 ### 🎯 Goal
 Build the look and feel and the shared UI kit every page uses. Spec: §8, §11.2.
@@ -81,7 +81,7 @@ Build the look and feel and the shared UI kit every page uses. Spec: §8, §11.2
 
 ---
 
-## 📌 Issue #3: Week 04 — Cassien: Availability Engine & Booking UI Components
+## 📌 Issue #15: Week 04 — Cassien: Availability Engine & Booking UI Components
 
 ### 🎯 Goal
 Build the slot-calculation logic and the calendar components the booking flow needs. Spec: §6.1, §8.5, US4.
@@ -106,7 +106,7 @@ Build the slot-calculation logic and the calendar components the booking flow ne
 
 ---
 
-## 📌 Issue #4: Week 05 — Sthephani: Dashboard Shell & Services CRUD
+## 📌 Issue #16: Week 05 — Sthephani: Dashboard Shell & Services CRUD
 
 ### 🎯 Goal
 Signed-in users get their dashboard, and professionals manage their services. Spec: US2, §6.3, §11.2.
@@ -114,14 +114,14 @@ Signed-in users get their dashboard, and professionals manage their services. Sp
 - **Week:** 05 · **Priority:** P0
 - **Assignee:** `@sthephaniplatero`
 - **Labels:** `week-05`, `dashboard`, `services`, `p0`
-- **Depends on:** Week 04 (#1 models + auth helpers, #2 UI kit)
+- **Depends on:** Week 04 (#13 models + auth helpers, #14 UI kit)
 
 ### ✅ Tasks
 - [ ] `app/dashboard/layout.tsx`: session check, role-aware `DashboardSidebar` (§11.2), bottom navigation below 768px.
 - [ ] Redirect clients who open professional-only pages (`/dashboard/services`, `/dashboard/profile`) to `/dashboard`.
 - [ ] `/dashboard` overview page: greeting and the user's next 3 upcoming appointments (read-only).
 - [ ] `GET/POST /api/services`, `PUT/DELETE /api/services/:id` with Zod, `requireRole('PROFESSIONAL')`, ownership checks (`403`), and archive-instead-of-delete when appointments reference the service.
-- [ ] `/dashboard/services` page: `ServiceList` / `ServiceCard` from #2 in dashboard mode, `ServiceFormModal` (duration 15/30/45/60/90, price + currency USD/KES), `DeleteServiceDialog`, empty state "Create your first service".
+- [ ] `/dashboard/services` page: `ServiceList` / `ServiceCard` from #14 in dashboard mode, `ServiceFormModal` (duration 15/30/45/60/90, price + currency USD/KES), `DeleteServiceDialog`, empty state "Create your first service".
 - [ ] The list refreshes right after create/edit/delete.
 
 ### 🏁 Done when
@@ -130,7 +130,7 @@ Signed-in users get their dashboard, and professionals manage their services. Sp
 
 ---
 
-## 📌 Issue #5: Week 05 — Anisa: Login/Register Pages & Public Profile
+## 📌 Issue #17: Week 05 — Anisa: Login/Register Pages & Public Profile
 
 ### 🎯 Goal
 Users can sign up and sign in from the UI, and every professional has a public page. Spec: US1, US3, §10.
@@ -138,13 +138,13 @@ Users can sign up and sign in from the UI, and every professional has a public p
 - **Week:** 05 · **Priority:** P0
 - **Assignee:** `@anichokwenda`
 - **Labels:** `week-05`, `auth`, `profile`, `frontend`, `p0`
-- **Depends on:** Week 04 (#1 register API + Auth.js, #2 UI kit)
+- **Depends on:** Week 04 (#13 register API + Auth.js, #14 UI kit)
 
 ### ✅ Tasks
 - [ ] `/login` and `/register` pages with `LoginForm`, `RegisterForm`, `RoleSelector` (React Hook Form + Zod, inline errors, keep inputs, redirect to `callbackUrl` or `/dashboard`).
 - [ ] `UserMenu` in the Header (avatar/initials, Dashboard, Sign out) when signed in.
 - [ ] `GET /api/professionals/:id` (profile + working hours + **active** services; `404` for unknown ids or clients; never returns `passwordHash` or email).
-- [ ] `/professionals/[id]` page: `ProfileHeader`, `ServiceList` + `ServiceCard` (from #2) in public mode, an empty `<section id="booking">` where the booking panel goes in Week 06, `notFound()` handling.
+- [ ] `/professionals/[id]` page: `ProfileHeader`, `ServiceList` + `ServiceCard` (from #14) in public mode, an empty `<section id="booking">` where the booking panel goes in Week 06, `notFound()` handling.
 - [ ] `generateMetadata` with the professional's name and headline.
 
 ### 🏁 Done when
@@ -153,7 +153,7 @@ Users can sign up and sign in from the UI, and every professional has a public p
 
 ---
 
-## 📌 Issue #6: Week 05 — Cassien: Availability, Booking & Reschedule APIs
+## 📌 Issue #18: Week 05 — Cassien: Availability, Booking & Reschedule APIs
 
 ### 🎯 Goal
 The booking engine works through the API, with double-booking protection. Spec: US4, US5, US7, §6.1, §9.5, §10.
@@ -161,7 +161,7 @@ The booking engine works through the API, with double-booking protection. Spec: 
 - **Week:** 05 · **Priority:** P0
 - **Assignee:** `@habyarimanacassien`
 - **Labels:** `week-05`, `booking-engine`, `backend`, `p0`
-- **Depends on:** Week 04 (#1 models + auth helpers, #3 `lib/availability.ts`)
+- **Depends on:** Week 04 (#13 models + auth helpers, #15 `lib/availability.ts`)
 
 ### ✅ Tasks
 - [ ] `GET /api/professionals/:id/availability?serviceId=&date=` using `lib/availability.ts`; returns `{ timezone, slots }`; validates params with Zod.
@@ -175,7 +175,7 @@ The booking engine works through the API, with double-booking protection. Spec: 
 
 ---
 
-## 📌 Issue #7: Week 06 — Sthephani: Appointments Dashboard, Cancel & Reschedule
+## 📌 Issue #19: Week 06 — Sthephani: Appointments Dashboard, Cancel & Reschedule
 
 ### 🎯 Goal
 Both roles see and manage their appointments. Spec: US6, US7, §6.2.
@@ -183,7 +183,7 @@ Both roles see and manage their appointments. Spec: US6, US7, §6.2.
 - **Week:** 06 · **Priority:** P0
 - **Assignee:** `@sthephaniplatero`
 - **Labels:** `week-06`, `appointments`, `dashboard`, `p0`
-- **Depends on:** Weeks 04–05 (#4 dashboard shell, #6 reschedule API, #3 calendar components)
+- **Depends on:** Weeks 04–05 (#16 dashboard shell, #18 reschedule API, #15 calendar components)
 
 ### ✅ Tasks
 - [ ] `GET /api/appointments?tab=upcoming|past|cancelled` following the tab rules in §6.2 (professional → `professionalId`, client → `clientId`).
@@ -198,7 +198,7 @@ Both roles see and manage their appointments. Spec: US6, US7, §6.2.
 
 ---
 
-## 📌 Issue #8: Week 06 — Anisa: Browse Professionals, Profile Settings & UX Pass
+## 📌 Issue #20: Week 06 — Anisa: Browse Professionals, Profile Settings & UX Pass
 
 ### 🎯 Goal
 Visitors can find professionals, professionals can edit their profile and hours, and the app is polished and accessible. Spec: US3, US4, §8, §13.
@@ -206,7 +206,7 @@ Visitors can find professionals, professionals can edit their profile and hours,
 - **Week:** 06 · **Priority:** P0 / P1
 - **Assignee:** `@anichokwenda`
 - **Labels:** `week-06`, `profile`, `ux`, `accessibility`, `p1`
-- **Depends on:** Weeks 04–05 (#2 UI kit, #4 dashboard shell, #5 public profile)
+- **Depends on:** Weeks 04–05 (#14 UI kit, #16 dashboard shell, #17 public profile)
 
 ### ✅ Tasks
 - [ ] `GET /api/professionals?q=&category=` and the `/professionals` page with `FilterBar` (search + category, synced to the URL) and `ProfessionalCard` grid, with an empty state.
@@ -222,7 +222,7 @@ Visitors can find professionals, professionals can edit their profile and hours,
 
 ---
 
-## 📌 Issue #9: Week 06 — Cassien: Booking Flow on the Profile Page & Deployment
+## 📌 Issue #21: Week 06 — Cassien: Booking Flow on the Profile Page & Deployment
 
 ### 🎯 Goal
 Clients book from the UI, and the app is live. Spec: US4, US5, §7.3.
@@ -230,7 +230,7 @@ Clients book from the UI, and the app is live. Spec: US4, US5, §7.3.
 - **Week:** 06 · **Priority:** P0
 - **Assignee:** `@habyarimanacassien`
 - **Labels:** `week-06`, `booking-engine`, `deployment`, `p0`
-- **Depends on:** Weeks 04–05 (#3 calendar components, #5 public profile page, #6 booking APIs)
+- **Depends on:** Weeks 04–05 (#15 calendar components, #17 public profile page, #18 booking APIs)
 
 ### ✅ Tasks
 - [ ] `BookingPanel` + `BookingModal` inside the `#booking` section of `/professionals/[id]` (service → date → slot → notes → "Confirm Booking").
