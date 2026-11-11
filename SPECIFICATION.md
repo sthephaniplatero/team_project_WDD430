@@ -544,9 +544,9 @@ The MVP is built in **3 weeks (Week 04 → Week 06)** by **3 members**, as **9 G
 
 | Week | Sthephani | Anisa | Cassien | Increment |
 | :--- | :--- | :--- | :--- | :--- |
-| **04** | **#13** MongoDB, models, seed, Auth.js backend, register API, `proxy.ts` | **#14** Design tokens, Inter, UI kit, layout, landing, `ServiceCard` | **#15** `lib/availability.ts` + tests, `BookingCalendar`, `TimeSlotPicker` | Branded app runs; data seeded; register API works |
-| **05** | **#16** Dashboard shell + services CRUD | **#17** Login/register pages, `UserMenu`, public profile + API | **#18** Availability, booking (transaction) & reschedule APIs | Sign up/in; pros manage services; profiles live; booking API works |
-| **06** | **#19** Appointments dashboard, cancel, complete, reschedule UI | **#20** `/professionals` + `FilterBar`, profile settings, UX/a11y pass | **#21** Booking UI on the profile page + Vercel deployment | US1–US7 work end to end on the live site |
+| **04** | **#13** MongoDB, models, seed, Auth.js backend, register API | **#14** Design tokens, Inter, UI kit, layout, landing, `ServiceCard` | **#15** `lib/availability.ts` + tests, `BookingCalendar`, `TimeSlotPicker` | Branded app runs; data seeded; register API works |
+| **05** | **#16** Dashboard shell + services CRUD | **#17** Login/register pages, `proxy.ts`, `UserMenu`, public profile + API | **#18** Availability, booking (transaction) & reschedule APIs; Vercel setup | Sign up/in; pros manage services; profiles live; booking API works |
+| **06** | **#19** Appointments dashboard, cancel, complete, reschedule UI | **#20** `/professionals` + `FilterBar`, profile settings, UX/a11y pass | **#21** Booking UI on the profile page + final production check | US1–US7 work end to end on the live site |
 
 ## 12. Implementation Priority
 - **P0 — MVP, delivered in Weeks 04–06**
