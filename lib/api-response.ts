@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { unstable_rethrow } from "next/navigation";
 import { ZodError } from "zod";
 
 /**
@@ -86,6 +87,10 @@ export function zodFieldErrors(error: ZodError): FieldErrors {
  *   try { ... } catch (e) { return handleApiError(e); }
  */
 export function handleApiError(error: unknown) {
+  // Let Next.js internal control-flow errors through (prerender bail-out,
+  // redirect(), notFound(), ...). Swallowing them breaks dynamic rendering.
+  unstable_rethrow(error);
+
   if (error instanceof ApiError) return apiError(error.code, error.message, error.fields);
   if (error instanceof ZodError) return badRequest("Validation failed", zodFieldErrors(error));
   if (error instanceof SyntaxError) return badRequest("Request body must be valid JSON");
