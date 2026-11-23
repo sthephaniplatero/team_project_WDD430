@@ -65,6 +65,16 @@ npm run seed
 
 The seed covers every dashboard tab: upcoming `CONFIRMED`, past `CONFIRMED`, `COMPLETED`, and `CANCELLED`.
 
+**Test a login before the `/login` page exists.** Start `npm run dev` in one terminal, wait for "Ready", and keep it open. Then, in a **second** PowerShell terminal:
+```powershell
+$s = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$csrf = (Invoke-RestMethod http://localhost:3000/api/auth/csrf -WebSession $s).csrfToken
+Invoke-WebRequest http://localhost:3000/api/auth/callback/credentials -Method Post -WebSession $s -UseBasicParsing -Body @{ csrfToken = $csrf; email = 'amina@example.com'; password = 'Password123!' } | Out-Null
+Invoke-RestMethod http://localhost:3000/api/auth/session -WebSession $s | ConvertTo-Json -Depth 3
+```
+A working login prints the user with its `id` and `role`. A wrong password prints nothing (empty session).
+If you get "Unable to connect to the remote server" ("No es posible conectar con el servidor remoto"), the app is not running. If `npm run dev` reports port `3001`, use `3001` in the four lines.
+
 ### 4. Run the development server
 ```bash
 npm run dev
