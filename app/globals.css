@@ -190,6 +190,13 @@ textarea {
   font: inherit;
 }
 
+/* Keep page content and the footer clear of the fixed dashboard bottom bar (<768px). */
+@media (max-width: 767px) {
+  body:has([data-dashboard-bottom-nav]) {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
+
 ::selection {
   background: #9cf2e8;
   color: var(--color-ink);

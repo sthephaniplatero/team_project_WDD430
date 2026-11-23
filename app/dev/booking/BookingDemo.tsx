@@ -16,7 +16,7 @@ const PROFESSIONAL = {
 
 const SERVICES: { id: string; title: string; durationMinutes: number; price: number; currency: Currency }[] = [
   { id: "s1", title: "Math tutoring", durationMinutes: 60, price: 2500, currency: "USD" },
-  { id: "s2", title: "Quick consultation", durationMinutes: 30, price: 150000, currency: "KES" },
+  { id: "s2", title: "Quick consultation", durationMinutes: 30, price: 1500, currency: "USD" },
   { id: "s3", title: "Exam prep workshop", durationMinutes: 90, price: 4000, currency: "USD" },
 ];
 

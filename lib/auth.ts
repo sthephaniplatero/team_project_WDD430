@@ -1,4 +1,6 @@
 import "server-only";
+import { cache } from "react";
+import { redirect } from "next/navigation";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
@@ -91,6 +93,34 @@ export async function requireRole(role: Role): Promise<SessionUser> {
   const user = await requireUser();
   if (user.role !== role) {
     throw new ApiError("FORBIDDEN", `Only ${role.toLowerCase()} accounts can do this`);
+  }
+  return user;
+}
+
+/**
+ * Page-level session check for Server Components (dashboard pages and layout).
+ * Redirects to /login when signed out; memoized per request, so the layout and
+ * the page can both call it without reading the session twice.
+ *
+ * It reads cookies, so with cacheComponents the caller must render inside <Suspense>.
+ * Layouts don't re-render on navigation: every dashboard page must call this too.
+ */
+export const getCurrentUser = cache(async (): Promise<SessionUser> => {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/login");
+  }
+  return session.user;
+});
+
+/**
+ * Like getCurrentUser, but for professional-only pages (/dashboard/services,
+ * /dashboard/profile): clients are sent back to /dashboard (SPECIFICATION.md §11.1).
+ */
+export async function getProfessionalUser(): Promise<SessionUser> {
+  const user = await getCurrentUser();
+  if (user.role !== "PROFESSIONAL") {
+    redirect("/dashboard");
   }
   return user;
 }
