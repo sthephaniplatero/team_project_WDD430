@@ -180,7 +180,7 @@ Kept in `.env.local` (never committed). A `.env.example` with empty values is co
 | Variable | Purpose |
 | :--- | :--- |
 | `MONGODB_URI` | Atlas connection string (includes the database name `viable`) |
-| `AUTH_SECRET` | Auth.js secret; generate with `npx auth secret` |
+| `AUTH_SECRET` | Auth.js secret; generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` (`npx auth secret` now runs the Better Auth CLI, not Auth.js) |
 | `AUTH_URL` | Only needed outside Vercel, e.g. `http://localhost:3000` |
 
 ### 7.4 Folder structure
