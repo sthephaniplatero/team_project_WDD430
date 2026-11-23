@@ -7,6 +7,8 @@
 - Anisa Chokwenda 
 - Habyarimana Cassien 
 
+Local setup verified by Cassien
+
 ## 📋 Project Documentation
 - **[Project Specification Document](./SPECIFICATION.md)**: Full project specification covering user stories, acceptance criteria, technical requirements, core API endpoints, and implementation priorities.
 - **[Project Issues & Tasks](./ISSUES.md)**: 3-week delivery plan: 9 GitHub issues (one per team member per week).
