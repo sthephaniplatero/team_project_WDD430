@@ -1,42 +1,51 @@
-import bcrypt from "bcryptjs";
-import { connectDB } from "@/lib/db";
-import { User } from "@/models/User";
+import { hash } from "bcryptjs";
+import { connectToDatabase } from "@/lib/db";
+import {
+  apiError,
+  badRequest,
+  conflict,
+  created,
+  zodFieldErrors,
+} from "@/lib/api-response";
 import { registerSchema } from "@/lib/validations/auth";
-import { ApiError, created, handleApiError } from "@/lib/api-response";
 import { PROFESSIONAL_PROFILE_DEFAULTS } from "@/lib/constants";
+import { User } from "@/models/User";
 
-const SALT_ROUNDS = 10;
-const EMAIL_TAKEN = "An account with this email already exists";
-
-/**
- * POST /api/auth/register — public
- * Body: { name, email, password, role }
- * 201 { data: { id, name, email, role } } | 400 validation | 409 email taken
- */
 export async function POST(request: Request) {
+  const body: unknown = await request.json().catch(() => null);
+  const parsed = registerSchema.safeParse(body);
+
+  if (!parsed.success) {
+    return badRequest("Please check your details.", zodFieldErrors(parsed.error));
+  }
+
   try {
-    const input = registerSchema.parse(await request.json());
-
-    await connectDB();
-
-    if (await User.exists({ email: input.email })) {
-      throw new ApiError("CONFLICT", EMAIL_TAKEN, { email: EMAIL_TAKEN });
+    await connectToDatabase();
+    if (await User.exists({ email: parsed.data.email })) {
+      const message = "An account with this email already exists.";
+      return conflict(message, { email: message });
     }
+  } catch (error) {
+    console.error("Registration database lookup failed:", error);
+    return apiError(
+      "DATABASE_UNAVAILABLE",
+      "Registration is temporarily unavailable because the database could not be reached.",
+    );
+  }
 
-    const passwordHash = await bcrypt.hash(input.password, SALT_ROUNDS);
-
+  const passwordHash = await hash(parsed.data.password, 10);
+  try {
     const user = await User.create({
-      name: input.name,
-      email: input.email,
+      ...parsed.data,
       passwordHash,
-      role: input.role,
-      // Professionals get a working profile right away (§9.1)
-      ...(input.role === "PROFESSIONAL" && {
-        professionalProfile: {
-          ...PROFESSIONAL_PROFILE_DEFAULTS,
-          workingDays: [...PROFESSIONAL_PROFILE_DEFAULTS.workingDays],
-        },
-      }),
+      ...(parsed.data.role === "PROFESSIONAL"
+        ? {
+            professionalProfile: {
+              ...PROFESSIONAL_PROFILE_DEFAULTS,
+              workingDays: [...PROFESSIONAL_PROFILE_DEFAULTS.workingDays],
+            },
+          }
+        : {}),
     });
 
     return created({
@@ -46,14 +55,20 @@ export async function POST(request: Request) {
       role: user.role,
     });
   } catch (error) {
-    // Two simultaneous sign-ups with the same email: the unique index wins.
-    if (isDuplicateKeyError(error)) {
-      return handleApiError(new ApiError("CONFLICT", EMAIL_TAKEN, { email: EMAIL_TAKEN }));
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      error.code === 11000
+    ) {
+      const message = "An account with this email already exists.";
+      return conflict(message, { email: message });
     }
-    return handleApiError(error);
-  }
-}
 
-function isDuplicateKeyError(error: unknown): boolean {
-  return typeof error === "object" && error !== null && "code" in error && error.code === 11000;
+    console.error("Registration database write failed:", error);
+    return apiError(
+      "DATABASE_UNAVAILABLE",
+      "Registration is temporarily unavailable because the database could not be reached.",
+    );
+  }
 }
