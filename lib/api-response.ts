@@ -14,7 +14,8 @@ export type ErrorCode =
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "CONFLICT"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "DATABASE_UNAVAILABLE";
 
 /** Field name → first error message, ready to show next to a form input. */
 export type FieldErrors = Record<string, string>;
@@ -30,6 +31,7 @@ const STATUS_BY_CODE: Record<ErrorCode, number> = {
   NOT_FOUND: 404,
   CONFLICT: 409,
   INTERNAL_ERROR: 500,
+  DATABASE_UNAVAILABLE: 503,
 };
 
 /** Throw this anywhere in a Route Handler; handleApiError() turns it into the right response. */
@@ -69,7 +71,8 @@ export const badRequest = (message = "Invalid request", fields?: FieldErrors) =>
 export const unauthorized = (message = "You must be signed in") => apiError("UNAUTHORIZED", message);
 export const forbidden = (message = "You are not allowed to do this") => apiError("FORBIDDEN", message);
 export const notFound = (message = "Not found") => apiError("NOT_FOUND", message);
-export const conflict = (message = "Conflict") => apiError("CONFLICT", message);
+export const conflict = (message = "Conflict", fields?: FieldErrors) =>
+  apiError("CONFLICT", message, fields);
 export const serverError = (message = "Something went wrong") => apiError("INTERNAL_ERROR", message);
 
 /** Converts Zod issues to { "field.path": "first message" }. */

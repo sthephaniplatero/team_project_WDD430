@@ -1,4 +1,5 @@
 import "server-only";
+import { getServers, setServers } from "node:dns";
 import mongoose from "mongoose";
 
 /**
@@ -28,8 +29,22 @@ export async function connectDB(): Promise<typeof mongoose> {
     throw new Error("MONGODB_URI is not defined. Add it to .env.local (see .env.example).");
   }
 
+  const dnsServers = process.env.MONGODB_DNS_SERVERS
+    ?.split(",")
+    .map((server) => server.trim())
+    .filter(Boolean);
+  if (dnsServers?.length) {
+    setServers(dnsServers);
+  }
+  if (process.env.NODE_ENV === "development") {
+    console.info("MongoDB DNS servers:", getServers());
+  }
+
   if (!cache.promise) {
-    cache.promise = mongoose.connect(uri, { bufferCommands: false });
+    cache.promise = mongoose.connect(uri, {
+      bufferCommands: false,
+      serverSelectionTimeoutMS: 10000,
+    });
   }
 
   try {
@@ -42,4 +57,5 @@ export async function connectDB(): Promise<typeof mongoose> {
   return cache.conn;
 }
 
+export const connectToDatabase = connectDB;
 export default connectDB;

@@ -3,10 +3,14 @@
 import { CalendarDays, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { UserMenu } from "@/components/layout/UserMenu";
 
 const navigation = [{ href: "/professionals", label: "Find a professional" }];
 
 export function Header() {
+  const { data: session, status } = useSession();
+  const user = status === "authenticated" ? session.user : null;
   const [menuOpen, setMenuOpen] = useState(false);
 
   function closeMenu() {
@@ -38,20 +42,24 @@ export function Header() {
               {item.label}
             </Link>
           ))}
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="rounded-md px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-slate-100"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/register"
-              className="rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-            >
-              Get started
-            </Link>
-          </div>
+          {user ? (
+            <UserMenu user={user} />
+          ) : (
+            <div className="flex items-center gap-3">
+              <Link
+                href="/login"
+                className="rounded-md px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-slate-100"
+              >
+                Log in
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+              >
+                Get started
+              </Link>
+            </div>
+          )}
         </nav>
 
         <button
@@ -87,20 +95,26 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
-            <Link
-              href="/login"
-              onClick={closeMenu}
-              className="rounded-md px-3 py-3 text-sm font-semibold text-ink hover:bg-slate-50"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/register"
-              onClick={closeMenu}
-              className="rounded-md bg-accent px-3 py-3 text-center text-sm font-semibold text-ink hover:bg-amber-400"
-            >
-              Get started
-            </Link>
+            {user ? (
+              <UserMenu user={user} onNavigate={closeMenu} mobile />
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  onClick={closeMenu}
+                  className="rounded-md px-3 py-3 text-sm font-semibold text-ink hover:bg-slate-50"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={closeMenu}
+                  className="rounded-md bg-accent px-3 py-3 text-center text-sm font-semibold text-ink hover:bg-amber-400"
+                >
+                  Get started
+                </Link>
+              </>
+            )}
           </div>
         </nav>
       )}
