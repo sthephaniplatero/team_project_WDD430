@@ -39,12 +39,14 @@ function Get-CurrentBranch {
         $latestFeature = ""
         $highest = 0
         
-        Get-ChildItem -Path $specsDir -Directory | ForEach-Object {
-            if ($_.Name -match '^(\d{3})-') {
+        # foreach statement (not ForEach-Object) so assignments update these
+        # variables instead of copies in a child scope.
+        foreach ($dir in Get-ChildItem -Path $specsDir -Directory) {
+            if ($dir.Name -match '^(\d{3})-') {
                 $num = [int]$matches[1]
                 if ($num -gt $highest) {
                     $highest = $num
-                    $latestFeature = $_.Name
+                    $latestFeature = $dir.Name
                 }
             }
         }
@@ -80,8 +82,10 @@ function Test-FeatureBranch {
     }
     
     if ($Branch -notmatch '^[0-9]{3}-') {
-        Write-Output "ERROR: Not on a feature branch. Current branch: $Branch"
-        Write-Output "Feature branches should be named like: 001-feature-name"
+        # Write-Host (not Write-Output) so the messages don't leak into the
+        # function's return value and turn $false into a truthy array.
+        Write-Host "ERROR: Not on a feature branch. Current branch: $Branch"
+        Write-Host "Feature branches should be named like: 001-feature-name"
         return $false
     }
     return $true
@@ -113,13 +117,18 @@ function Get-FeaturePathsEnv {
     }
 }
 
+# Check/cross marks built from code points so the file stays pure ASCII
+# (Windows PowerShell 5.1 misreads BOM-less UTF-8 as ANSI).
+$script:CheckMark = [char]0x2713
+$script:CrossMark = [char]0x2717
+
 function Test-FileExists {
     param([string]$Path, [string]$Description)
     if (Test-Path -Path $Path -PathType Leaf) {
-        Write-Output "  ✓ $Description"
+        Write-Host "  $script:CheckMark $Description"
         return $true
     } else {
-        Write-Output "  ✗ $Description"
+        Write-Host "  $script:CrossMark $Description"
         return $false
     }
 }
@@ -127,10 +136,10 @@ function Test-FileExists {
 function Test-DirHasFiles {
     param([string]$Path, [string]$Description)
     if ((Test-Path -Path $Path -PathType Container) -and (Get-ChildItem -Path $Path -ErrorAction SilentlyContinue | Where-Object { -not $_.PSIsContainer } | Select-Object -First 1)) {
-        Write-Output "  ✓ $Description"
+        Write-Host "  $script:CheckMark $Description"
         return $true
     } else {
-        Write-Output "  ✗ $Description"
+        Write-Host "  $script:CrossMark $Description"
         return $false
     }
 }

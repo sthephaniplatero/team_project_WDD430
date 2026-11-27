@@ -45,6 +45,7 @@ cp .env.example .env.local
 | Variable | Value |
 | :--- | :--- |
 | `MONGODB_URI` | `mongodb+srv://<user>:<password>@<cluster>.mongodb.net/viable?retryWrites=true&w=majority` |
+| `MONGODB_DNS_SERVERS` | Optional DNS resolvers (e.g. `1.1.1.1,1.0.0.1`) if Node.js cannot resolve Atlas SRV records |
 | `AUTH_SECRET` | Run `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` and paste the output |
 | `AUTH_URL` | `http://localhost:3000` (not needed on Vercel) |
 
@@ -67,7 +68,7 @@ npm run seed
 
 The seed covers every dashboard tab: upcoming `CONFIRMED`, past `CONFIRMED`, `COMPLETED`, and `CANCELLED`.
 
-**Test a login before the `/login` page exists.** Start `npm run dev` in one terminal, wait for "Ready", and keep it open. Then, in a **second** PowerShell terminal:
+**Test a seeded login through Auth.js.** Start `npm run dev` in one terminal, wait for "Ready", and keep it open. Then, in a **second** PowerShell terminal:
 ```powershell
 $s = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 $csrf = (Invoke-RestMethod http://localhost:3000/api/auth/csrf -WebSession $s).csrfToken
